@@ -9,15 +9,15 @@ A native iOS 26+ listening instrument in the Aeon family. Import a song, investi
 - Streaming audio analysis with bounded PCM memory, cancellation, meaningful errors, 3-second/15-minute duration limits, stereo/mono validation, and a 500 MB import limit.
 - Spectrum, sample peak/RMS/crest, stereo correlation, mid/side energy, level-based moments, onset tempo candidates, transient density and qualified envelope-decay candidates.
 - Nine production lenses: drums, vocal layers, delay, reverb, stereo, arrangement, low end, dynamics and texture.
-- Playback, scrubbing, section loops, true mono-sum audition, tempo tap/half/double, persistent notes and completed experiments, report/experiment sharing.
+- Playback, stable scrubbing, section and custom phrase loops, true mono-sum audition, tempo tap/half/double/reset, persistent notes and completed experiments, report/experiment sharing. Playback controls stay available inside experiments.
 - An original generated instrumental study, Afterglow; it contains no vocals and is never represented as a commercial reference.
 - Aeon Nocturne typography, atmospheric linework, native Liquid Glass navigation/controls, Dynamic Type and VoiceOver labels.
 
 ## What the report means
 
-EAR 1.0 uses deterministic signal analysis and an authored, measurement-aware teaching layer. There is no cloud AI, track-recognition service or source-separation model. Observations are explicitly separated into measurements, interpretations and listening hypotheses. It cannot recover exact plugins, vocal take counts, reverb types or compressor settings from a mix. Delay values are derived from the selected tempo, not detected echo taps. Level windows are not semantic verse/chorus detection. RMS is not LUFS; sample peak is not true peak. The user can correct tempo before using experiments.
+EAR 1.1 uses deterministic signal analysis and an authored, measurement-aware teaching layer. There is no cloud AI, track-recognition service or source-separation model. Observations are explicitly separated into measurements, interpretations and listening hypotheses. It cannot recover exact plugins, vocal take counts, reverb types or compressor settings from a mix. Delay values are derived from the selected tempo, not detected echo taps. Level windows are not semantic verse/chorus detection. RMS is not LUFS; sample peak is not true peak. The user can correct tempo before using experiments.
 
-No network requests are made by the app, except when the user opens an external reference manual. Audio and JSON notebook data live in the app’s Documents/Studies directory. Imports preserve the original. There are no keys or accounts to configure. Protected streaming downloads and streaming URLs are unsupported.
+No network requests are made by the app, except when the user opens an external reference manual. Audio and JSON notebook data live in the app’s Documents/Studies directory. The notebook keeps one validated previous index as a backup. If recovery is necessary, EAR preserves the damaged index, restores the last good save and tells you; the latest edit may need to be repeated. This backup covers notes and analysis metadata, not a second copy of your audio. Imports preserve the original. There are no keys or accounts to configure. Protected streaming downloads and streaming URLs are unsupported.
 
 Stufo’s current version exposes no deep-link contract. EAR shares portable experiment notes and includes matching Studio Pro instruction; it does not claim a working app-to-app handoff.
 
@@ -27,7 +27,9 @@ Open `EAR.xcodeproj` in Xcode 26 or later. Bundle ID: `com.aeon.ear`; minimum iO
 
 The push-triggered workflow compiles a Release arm64 device app, packages an **unsigned** IPA and uploads it before validation. Signing is required before installation. Each build/validation stage has a hard 600-second ceiling and no retry loop. Source SHA and run number are embedded in `BuildManifest.json`.
 
-After the IPA, the workflow verifies known audio signals (silence, centered/inverted stereo, spectrum, pulse, peak/RMS/crest, mono cancellation), then runs a native UI journey covering study generation, playback, mono audition, tempo editing, an experiment and persistence. Screenshots are saved as workflow artifacts. Simulator checks do not establish physical-device acceptance.
+After the IPA, the workflow verifies known audio signals (silence, centered/inverted stereo, spectrum, pulse, peak/RMS/crest, mono cancellation), byte-preserving imports, cancelled-output cleanup, malformed notebook rejection and last-good recovery. Native UI checks cover study generation, playback, mono audition, custom looping, tempo reset, experiment transport, note persistence and replay at the end of a track. Simulator boot, compilation and test execution have separate 600-second ceilings. A failed or timed-out stage stops later work; there are no automated retries. Screenshots are saved as workflow artifacts. Simulator checks do not establish physical-device acceptance.
+
+The project uses Swift 6 concurrency checking. To loop an exact phrase, pause or scrub to the start, open the repeat menu and choose **Set loop start here**, then scrub to its end and choose **Set loop end here**. The selected phrase begins playing in a loop. Use **Clear loop** to return to the whole track.
 
 The Xcode project is deterministic: `python3 scripts/project.py`. The icon source is `scripts/icon.svg`.
 

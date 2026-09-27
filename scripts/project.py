@@ -6,7 +6,7 @@ def uid(s): return hashlib.sha1(s.encode()).hexdigest()[:24].upper()
 objects=[]
 def obj(key,body): objects.append(f'{uid(key)} = {{ {body} }};'); return uid(key)
 def array(items): return '('+', '.join(items)+',)'
-swift=['AudioAnalyzer.swift', 'AudioFiles.swift', 'Design.swift', 'EarApp.swift', 'EarStore.swift', 'Experiments.swift', 'Models.swift', 'StudyViews.swift']
+swift=['AudioAnalyzer.swift', 'AudioFiles.swift', 'Design.swift', 'EarApp.swift', 'EarStore.swift', 'Experiments.swift', 'Models.swift', 'NotebookFiles.swift', 'StudyViews.swift']
 resources=['Assets.xcassets','PrivacyInfo.xcprivacy','AeonNocturne-Regular.otf','GUST-FONT-LICENSE.txt','LPPL-1.3c.tex','README-Aeon-Nocturne.txt']
 fileids=[]; sourcebuild=[]; resourcebuild=[]
 for f in swift+resources:
@@ -27,12 +27,12 @@ sources=obj('sources',f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647
 res=obj('resources',f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = {array(resourcebuild)}; runOnlyForDeploymentPostprocessing = 0;')
 frameworks=obj('frameworks','isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;')
 testsources=obj('testsources',f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = {array([testbuild])}; runOnlyForDeploymentPostprocessing = 0;')
-common='CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";'
+common='CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2";'
 projectconfigs=[]; appconfigs=[]; testconfigs=[]
 for config in ['Debug','Release']:
     opt='SWIFT_OPTIMIZATION_LEVEL = "-Onone"; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES;' if config=='Debug' else 'SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";'
     projectconfigs.append(obj('project'+config,f'isa = XCBuildConfiguration; buildSettings = {{ {common} {opt} }}; name = {config};'))
-    appconfigs.append(obj('app'+config,f'isa = XCBuildConfiguration; buildSettings = {{ ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = EAR/Info.plist; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; ENABLE_PREVIEWS = YES; }}; name = {config};'))
+    appconfigs.append(obj('app'+config,f'isa = XCBuildConfiguration; buildSettings = {{ ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = EAR/Info.plist; MARKETING_VERSION = 1.1; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; ENABLE_PREVIEWS = YES; }}; name = {config};'))
     testconfigs.append(obj('test'+config,f'isa = XCBuildConfiguration; buildSettings = {{ GENERATE_INFOPLIST_FILE = YES; CODE_SIGN_STYLE = Automatic; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = EAR; }}; name = {config};'))
 def configlist(name,configs): return obj(name,f'isa = XCConfigurationList; buildConfigurations = {array(configs)}; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;')
 pc=configlist('pc',projectconfigs); ac=configlist('ac',appconfigs); tc=configlist('tc',testconfigs)

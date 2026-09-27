@@ -9,14 +9,19 @@ import AVFoundation
         WindowGroup {
             RootView().environment(store).preferredColorScheme(.dark).tint(Ink.accent)
                 .onChange(of: phase) { _, value in
-                    if value == .background { store.pause(); if store.recording { store.stopRecording(keep: true) } }
+                    if value == .background { store.suspendAudio() }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { _ in
-                    store.pause(); if store.recording { store.stopRecording(keep: true) }
+                .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { note in
+                    if let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                       type == AVAudioSession.InterruptionType.began.rawValue { store.suspendAudio() }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.mediaServicesWereResetNotification)) { _ in
+                    store.suspendAudio()
+                    if let study = store.current { store.open(study) }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { note in
                     if let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.pause() }
+                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio() }
                 }
                 .onOpenURL { url in if url.isFileURL { store.importFile(url) } }
         }
@@ -53,9 +58,8 @@ struct RootView: View {
             NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
         }
         .sheet(isPresented: $settings) { NavigationStack { SettingsView() }.presentationBackground(Ink.background) }
-        .alert("EAR", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
-            Button("OK") { store.error = nil }
-        } message: { Text(store.error ?? "") }
+        .onChange(of: store.busy) { _, busy in if busy { settings = false } }
+        .modifier(EarErrorAlert(active: !store.showStudy && !settings))
         .overlay {
             if store.busy {
                 VStack(spacing: 22) {
@@ -86,11 +90,11 @@ struct ListenView: View {
                 } else {
                     Button { importing = true } label: {
                         HStack { Image(systemName: "plus"); Text("Bring a song").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8)
-                    }.buttonStyle(.glassProminent).controlSize(.large).tint(Ink.primary).foregroundStyle(Ink.background).accessibilityIdentifier("importAudio")
+                    }.buttonStyle(.glassProminent).controlSize(.large).tint(Ink.primary).foregroundStyle(Ink.background).accessibilityIdentifier("importAudio").disabled(!store.canStartStudy)
                     HStack(spacing: 12) {
-                        Button { Task { await store.startRecording() } } label: { Label("Capture", systemImage: "mic").frame(maxWidth: .infinity, minHeight: 30) }
+                        Button { Task { await store.startRecording() } } label: { Label(store.requestingMicrophone ? "Requesting…" : "Capture", systemImage: "mic").frame(maxWidth: .infinity, minHeight: 44) }.accessibilityIdentifier("captureAudio")
                         Button { store.demo() } label: { Label("Try a study", systemImage: "play.circle").frame(maxWidth: .infinity, minHeight: 30) }.accessibilityIdentifier("demoStudy")
-                    }.buttonStyle(.glass).controlSize(.regular).padding(.top, 12)
+                    }.buttonStyle(.glass).controlSize(.regular).padding(.top, 12).disabled(!store.canStartStudy)
                     Text("AUDIO FILES OR A 30-SECOND CAPTURE").font(.system(size: 9, design: .monospaced)).tracking(1.4).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 17)
                 }
                 Rule().padding(.top, 30).padding(.bottom, 22)
@@ -102,7 +106,7 @@ struct ListenView: View {
                     Rule().padding(.vertical, 24)
                     Button { store.open(recent) } label: {
                         HStack { VStack(alignment: .leading, spacing: 7) { Eyebrow("Continue listening"); Text(recent.title).font(Ink.display(25)).foregroundStyle(Ink.primary) }; Spacer(); Image(systemName: "arrow.up.right").foregroundStyle(Ink.accent) }.frame(minHeight: 50)
-                    }.buttonStyle(.plain)
+                    }.buttonStyle(.plain).disabled(!store.canStartStudy)
                 }
             }.padding(.horizontal, 26).padding(.bottom, 28).frame(maxWidth: 620)
                 .frame(maxWidth: .infinity)
@@ -133,7 +137,7 @@ struct NotebookView: View {
                 Text("Keep the sounds. Remember the discoveries.").font(.subheadline).foregroundStyle(Ink.secondary)
                 if filtered.isEmpty {
                     ContentUnavailableView(search.isEmpty ? "A place for discoveries" : "No matching studies", systemImage: "waveform", description: Text(search.isEmpty ? "Import a song or try Afterglow to start your first study." : "Try a different title or note."))
-                    if search.isEmpty { Button("Bring a song") { importing = true }.buttonStyle(.glassProminent) }
+                    if search.isEmpty { Button("Bring a song") { importing = true }.buttonStyle(.glassProminent).disabled(!store.canStartStudy) }
                 }
                 ForEach(filtered) { study in
                     Rule()
@@ -143,13 +147,13 @@ struct NotebookView: View {
                             Waveform(values: study.metrics.waveform, progress: 0.32).frame(height: 32)
                             HStack { Text(clock(study.metrics.duration)); Text("·"); Text(study.created, style: .date); Spacer(); Text("\(study.completed.count) tried") }.font(.system(.caption2, design: .monospaced)).foregroundStyle(Ink.secondary)
                         }.padding(.vertical, 12).contentShape(Rectangle())
-                    }.buttonStyle(.plain).contextMenu { Button("Delete study", role: .destructive) { deletion = study } }
+                    }.buttonStyle(.plain).disabled(!store.canStartStudy).contextMenu { Button("Delete study", role: .destructive) { deletion = study }.disabled(!store.canStartStudy) }
                 }
             }.padding(26).frame(maxWidth: 700).frame(maxWidth: .infinity)
         }.background(Ink.background).foregroundStyle(Ink.primary)
             .navigationTitle("Notebook").navigationBarTitleDisplayMode(.inline)
             .searchable(text: $search, prompt: "Titles and notes")
-            .toolbar { Button("Import audio", systemImage: "plus") { importing = true } }
+            .toolbar { Button("Import audio", systemImage: "plus") { importing = true }.disabled(!store.canStartStudy) }
             .confirmationDialog("Delete this study and its imported audio copy?", isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }), titleVisibility: .visible) {
                 Button("Delete study", role: .destructive) { if let deletion { store.delete(deletion) }; deletion = nil }
             }
@@ -197,8 +201,9 @@ struct SettingsView: View {
                 Link("Fender Studio Pro manual", destination: URL(string: "https://s1manual.presonus.com/")!)
                 Link("Logic Pro user guide", destination: URL(string: "https://support.apple.com/guide/logicpro/welcome/mac")!)
             }
-            Section { Text("EAR 1.0 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
+            Section { Text("EAR 1.1 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
         }.scrollContentBackground(.hidden).background(Ink.background).navigationTitle("Your studio").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .modifier(EarErrorAlert())
     }
 }

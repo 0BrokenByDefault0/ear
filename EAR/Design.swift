@@ -1,5 +1,15 @@
 import SwiftUI
 
+struct EarErrorAlert: ViewModifier {
+    @Environment(EarStore.self) private var store
+    var active = true
+    func body(content: Content) -> some View {
+        content.alert("EAR", isPresented: Binding(get: { active && store.error != nil }, set: { if !$0 && active { store.error = nil } })) {
+            Button("OK") { store.error = nil }
+        } message: { Text(store.error ?? "") }
+    }
+}
+
 enum Ink {
     static let background = Color(red: 0.018, green: 0.025, blue: 0.04)
     static let surface = Color(red: 0.041, green: 0.055, blue: 0.075)
