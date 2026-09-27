@@ -15,19 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode with iOS 26 SDK
-        run: |
-          python3 - <<'PY'
-          import glob, os, re
-          candidates=[]
-          for p in glob.glob('/Applications/Xcode*.app'):
-              v=re.search(r'Xcode_(\d+)(?:\.(\d+))?',p)
-              if v and int(v[1]) >= 26: candidates.append(((int(v[1]),int(v[2] or 0)),p))
-          assert candidates, 'Xcode 26 or newer is required'
-          chosen=sorted(candidates)[-1][1]+'/Contents/Developer'
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('DEVELOPER_DIR='+chosen+'\n')
-          PY
+        run: python3 scripts/select_xcode.py
       - name: Compile unsigned iPhone app
-        timeout-minutes: 10
         run: |
           set -o pipefail
           mkdir -p build
@@ -43,70 +32,82 @@ jobs:
           info=plistlib.load(open(app+'/Info.plist','rb'))
           assert info['MinimumOSVersion']=='26.0'
           assert info['CFBundleIdentifier']=='com.aeon.ear'
+          assert info['CFBundleShortVersionString']=='1.1'
           json.dump({'commit':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_NUMBER'],'unsigned':True},open(app+'/BuildManifest.json','w'),indent=2)
           PY
           cd build/package
-          zip -q -r ../EAR-1.0-unsigned.ipa Payload
+          zip -q -r ../EAR-1.1-unsigned.ipa Payload
           cd ..
-          shasum -a 256 EAR-1.0-unsigned.ipa > SHA256.txt
+          shasum -a 256 EAR-1.1-unsigned.ipa > SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
           name: EAR-unsigned-IPA
           path: |
-            build/EAR-1.0-unsigned.ipa
+            build/EAR-1.1-unsigned.ipa
             build/SHA256.txt
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: EAR-device-log
           path: build/device.log
-  verify:
+  audio:
     needs: ipa
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 26 and iPhone simulator
-        run: |
-          python3 - <<'PY'
-          import glob,os,re,subprocess,json
-          paths=[]
-          for p in glob.glob('/Applications/Xcode*.app'):
-              v=re.search(r'Xcode_(\d+)(?:\.(\d+))?',p)
-              if v and int(v[1])>=26: paths.append(((int(v[1]),int(v[2] or 0)),p))
-          assert paths
-          os.environ['DEVELOPER_DIR']=sorted(paths)[-1][1]+'/Contents/Developer'
-          data=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j']))
-          phones=[d for runtime,devices in data['devices'].items() if 'iOS-26' in runtime for d in devices if 'iPhone' in d['name'] and d.get('isAvailable')]
-          assert phones, 'An iOS 26 simulator is required'
-          chosen=next((p for p in phones if p['name']=='iPhone 17 Pro'),phones[0])
-          with open(os.environ['GITHUB_ENV'],'a') as f: f.write('DEVELOPER_DIR='+os.environ['DEVELOPER_DIR']+'\nEAR_SIM='+chosen['udid']+'\n')
-          PY
-      - name: Check analysis against known signals
+      - name: Select Xcode
+        run: python3 scripts/select_xcode.py
+      - name: Compile regression checks
         run: |
           set -o pipefail
           mkdir -p build
-          python3 scripts/bounded.py xcrun swiftc EAR/Models.swift EAR/AudioAnalyzer.swift EAR/AudioFiles.swift EAR/Experiments.swift scripts/AudioCheck.swift -o build/audio-check
-          python3 scripts/bounded.py build/audio-check | tee build/audio-check.log
-      - name: Native journey and screenshots
+          python3 scripts/bounded.py xcrun swiftc -swift-version 6 EAR/Models.swift EAR/AudioAnalyzer.swift EAR/AudioFiles.swift EAR/NotebookFiles.swift EAR/Experiments.swift scripts/AudioCheck.swift -o build/audio-check 2>&1 | tee build/audio-compile.log
+      - name: Check analysis, imports, cancellation and notebook recovery
         run: |
           set -o pipefail
-          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Smoke.xcresult CODE_SIGNING_ALLOWED=NO test 2>&1 | tee build/smoke.log
+          python3 scripts/bounded.py build/audio-check 2>&1 | tee build/audio-check.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EAR-audio-validation
+          path: build/*.log
+          retention-days: 14
+  ui:
+    needs: audio
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode and simulator
+        run: python3 scripts/select_xcode.py --simulator
+      - name: Boot simulator
+        run: |
+          mkdir -p build
+          set -o pipefail
+          python3 scripts/bounded.py xcrun simctl bootstatus "$EAR_SIM" -b 2>&1 | tee build/boot.log
+      - name: Build simulator tests
+        run: |
+          set -o pipefail
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee build/simulator-build.log
+      - name: Native listening journey
+        run: |
+          set -o pipefail
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Smoke.xcresult -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 180 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee build/smoke.log
       - name: Collect screenshots
         if: always()
         run: |
           mkdir -p build/screenshots
-          if [ -d build/Smoke.xcresult ]; then
+          if [ -f build/Smoke.xcresult/Info.plist ]; then
             xcrun xcresulttool export attachments --path build/Smoke.xcresult --output-path build/screenshots || true
           fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: EAR-validation
+          name: EAR-native-validation
           path: |
-            build/audio-check.log
-            build/smoke.log
+            build/*.log
             build/screenshots
           retention-days: 14

@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 
 @main struct AudioCheck {
-    static func main() throws {
+    static func main() async throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -15,6 +15,29 @@ import AVFoundation
         let study = Study(title: "Check", filename: "study.caf", source: "Generated fixture", metrics: result)
         let roundTrip = try JSONDecoder().decode(Study.self, from: JSONEncoder().encode(study))
         precondition(roundTrip.title == "Check")
+        let notebook = folder.appendingPathComponent("notebook.json")
+        try NotebookFiles.save([study], to: notebook)
+        var edited = study; edited.notes = "A saved listening note"; edited.tempoOverride = 96
+        try NotebookFiles.save([edited], to: notebook)
+        let saved = try NotebookFiles.load(from: notebook)
+        precondition(saved.studies[0].notes == edited.notes && !saved.recovered)
+        try Data("damaged index".utf8).write(to: notebook)
+        let recovered = try NotebookFiles.load(from: notebook)
+        precondition(recovered.recovered && recovered.studies[0].id == study.id)
+        let preserved = try FileManager.default.contentsOfDirectory(atPath: folder.path)
+        precondition(preserved.contains { $0.hasPrefix("notebook-damaged-") })
+        for bad in ["../outside.caf", "/outside.caf", "..", ""] {
+            var invalid = study; invalid.filename = bad
+            do { _ = try NotebookFiles.decode(JSONEncoder().encode([invalid])); preconditionFailure("Unsafe path must be rejected") }
+            catch EarError.message(_) { }
+        }
+        var invalid = study; invalid.metrics.bands = []
+        do { _ = try NotebookFiles.decode(JSONEncoder().encode([invalid])); preconditionFailure("Invalid spectrum must not reach the UI") }
+        catch EarError.message(_) { }
+        let imported = folder.appendingPathComponent("import.caf")
+        try AudioFiles.importCopy(source: demo, destination: imported)
+        let sourceBytes = try Data(contentsOf: demo), copiedBytes = try Data(contentsOf: imported)
+        precondition(sourceBytes == copiedBytes, "Import must preserve source bytes")
         for lens in Lens.allCases {
             precondition(!Finding.make(lens, study: study).evidence.isEmpty)
             precondition(Experiment.make(lens, daw: .studio, tempo: 120).steps.count >= 4)
@@ -52,7 +75,19 @@ import AVFoundation
         let silence = try fixture("silence", inverted: false, silent: true)
         do { _ = try AudioAnalyzer.analyze(silence); preconditionFailure("Silence must be rejected") }
         catch EarError.message(_) { }
-        print("PASS: streaming decode, known peak/RMS/crest, low-band spectrum, center/antiphase stereo, mono cancellation, silence, pulse, persistence coding and all nine experiment paths.")
+        let cancelledURL = folder.appendingPathComponent("cancelled.caf")
+        let cancelled = Task.detached {
+            withUnsafeCurrentTask { $0?.cancel() }
+            try AudioFiles.mono(source: demo, destination: cancelledURL)
+        }
+        do { try await cancelled.value; preconditionFailure("Cancelled conversion must throw") }
+        catch is CancellationError { }
+        precondition(!FileManager.default.fileExists(atPath: cancelledURL.path), "Cancelled conversion must remove its partial output")
+        let restoredMono = folder.appendingPathComponent("complete-mono.caf")
+        try AudioFiles.mono(source: demo, destination: restoredMono)
+        let monoMetrics = try AudioAnalyzer.analyze(restoredMono)
+        precondition(monoMetrics.channels == 1 && abs(monoMetrics.duration - result.duration) < 0.01)
+        print("PASS: streaming decode, known peak/RMS/crest, low-band spectrum, center/antiphase stereo, mono cancellation, silence, pulse, persistence recovery and validation, byte-preserving import, cancelled-output cleanup, full-length mono and all nine experiment paths.")
         print("Demo: \(result.duration)s, tempo candidate \(result.bpm.map { String($0) } ?? "none"), \(result.moments.count) sections")
     }
 }

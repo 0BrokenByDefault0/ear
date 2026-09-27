@@ -28,7 +28,7 @@ struct StudyView: View {
                         SpectrumView(bands: study.metrics.bands).padding(.top, 20)
                         Text("Frequency balance across the complete mix.").font(.caption2).foregroundStyle(Ink.secondary).padding(.top, 12)
                         Rule().padding(.vertical, 24)
-                        HStack { Eyebrow("Moments"); Spacer(); if store.loop != nil { Button("Clear loop") { store.loop = nil }.font(.caption) } }
+                        HStack { Eyebrow("Moments"); Spacer(); if store.loop != nil || store.loopStart != nil { Button("Clear loop") { store.clearLoop() }.font(.caption).frame(minHeight: 44) } }
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
                                 ForEach(study.metrics.moments) { moment in
@@ -69,6 +69,7 @@ struct StudyView: View {
                 .sheet(isPresented: $editNotes) { NavigationStack { NotesView(studyID: study.id, initial: study.notes) }.presentationBackground(Ink.background) }
             } else { ContentUnavailableView("Choose a study", systemImage: "waveform") }
         }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Study").navigationBarTitleDisplayMode(.inline)
+            .modifier(EarErrorAlert(active: !editTempo && !editNotes))
     }
 }
 
@@ -93,21 +94,39 @@ struct SpectrumView: View {
 struct TransportView: View {
     @Environment(EarStore.self) private var store
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @State private var scrubbing = false
+    @State private var scrubPosition = 0.0
     var body: some View {
         if let study = store.current {
             VStack(spacing: 2) {
                 HStack(spacing: 12) {
                     Button { store.seek(max(0, store.position - 5)) } label: { Image(systemName: "gobackward.5").frame(width: 44, height: 44) }.accessibilityLabel("Back five seconds")
-                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44) }.accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
+                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44) }.disabled(store.preparingMono).accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(clock(store.position)) / \(clock(study.metrics.duration))").font(.system(.caption, design: .monospaced)).monospacedDigit()
-                        Text(store.loop == nil ? "Listen for the details" : "Looping · \(store.loop?.label ?? "")").font(.caption2).foregroundStyle(Ink.secondary).lineLimit(1)
+                        Text("\(clock(scrubbing ? scrubPosition : store.position)) / \(clock(study.metrics.duration))").font(.system(.caption, design: .monospaced)).monospacedDigit()
+                        Text(store.loopStart.map { "Start marked · \(clock($0))" } ?? (store.loop == nil ? "Listen for the details" : "Looping · \(store.loop?.label ?? "")")).font(.caption2).foregroundStyle(Ink.secondary).lineLimit(1)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     Button { store.toggleMono() } label: {
                         Group { if store.preparingMono { ProgressView() } else { Text(store.mono ? "MONO" : "L / R").font(.system(.caption2, design: .monospaced)).foregroundStyle(store.mono ? Ink.accent : Ink.primary) } }.frame(width: 48, height: 44)
                     }.disabled(study.metrics.channels == 1 || store.preparingMono).accessibilityLabel(store.mono ? "Switch to stereo" : "Audition in mono").accessibilityIdentifier("monoAudition")
                 }.buttonStyle(.plain)
-                Slider(value: Binding(get: { store.position }, set: { store.seek($0) }), in: 0...max(1, study.metrics.duration)).accessibilityLabel("Playback position").padding(.horizontal, 12)
+                HStack(spacing: 4) {
+                    Slider(value: Binding(get: { scrubbing ? scrubPosition : store.position }, set: {
+                        scrubPosition = $0
+                        if !scrubbing { store.seek($0) }
+                    }), in: 0...max(1, study.metrics.duration), onEditingChanged: { editing in
+                        if editing { scrubPosition = store.position }
+                        else { store.seek(scrubPosition) }
+                        scrubbing = editing
+                    }).accessibilityLabel("Playback position").accessibilityValue(clock(scrubbing ? scrubPosition : store.position)).accessibilityIdentifier("playbackPosition")
+                    Menu {
+                        Button("Set loop start here", systemImage: "a.circle") { store.markLoopStart() }
+                        Button("Set loop end here", systemImage: "b.circle") { store.markLoopEnd() }.disabled(store.loopStart == nil)
+                        if store.loop != nil || store.loopStart != nil { Button("Clear loop", systemImage: "xmark.circle") { store.clearLoop() } }
+                    } label: {
+                        Image(systemName: "repeat").foregroundStyle(store.loop != nil || store.loopStart != nil ? Ink.accent : Ink.secondary).frame(width: 44, height: 44)
+                    }.accessibilityLabel("Phrase loop").accessibilityIdentifier("phraseLoop")
+                }.padding(.leading, 12)
             }.padding(.horizontal, 10).padding(.vertical, 8)
                 .background { if reduceTransparency { RoundedRectangle(cornerRadius: 26).fill(Ink.surface) } }
                 .glassEffect(.regular, in: .rect(cornerRadius: 26))
@@ -183,6 +202,10 @@ struct ExperimentView: View {
                 ShareLink(item: experiment.text(daw: daw)) { Label("Share experiment", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity, minHeight: 35) }.buttonStyle(.glass)
             }.padding(.horizontal, 26).padding(.bottom, 30).frame(maxWidth: 680).frame(maxWidth: .infinity)
         }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Experiment").navigationBarTitleDisplayMode(.inline)
+            .onChange(of: dawName) { _, _ in checked.removeAll() }
+            .safeAreaInset(edge: .bottom) {
+                if studyID != nil && studyID == store.currentID { TransportView().padding(.horizontal, 18).padding(.bottom, 8) }
+            }
     }
 }
 
@@ -209,13 +232,20 @@ struct TempoView: View {
                     Button("2×") { bpm = min(240, bpm * 2) }
                 }.buttonStyle(.glass).controlSize(.large)
                 Text("Tap at least four steady beats. Half-time and double-time are common; pick the pulse you would use in your session.").font(.caption).foregroundStyle(Ink.secondary)
+                if let study = store.studies.first(where: { $0.id == studyID }), study.tempoOverride != nil {
+                    Button("Restore analyzed tempo") {
+                        var restored = study; restored.tempoOverride = nil
+                        if store.update(restored) { dismiss() }
+                    }.buttonStyle(.glass).accessibilityIdentifier("restoreTempo")
+                }
             }.padding(26)
         }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Find the pulse").navigationBarTitleDisplayMode(.inline)
             .onAppear { bpm = store.studies.first { $0.id == studyID }?.tempo ?? 90 }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Apply") { if var study = store.studies.first(where: { $0.id == studyID }) { study.tempoOverride = bpm; store.update(study) }; dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Apply") { if var study = store.studies.first(where: { $0.id == studyID }) { study.tempoOverride = bpm; if store.update(study) { dismiss() } } } }
             }
+            .modifier(EarErrorAlert())
     }
 }
 
@@ -230,7 +260,8 @@ struct NotesView: View {
             .navigationTitle("Your discoveries").navigationBarTitleDisplayMode(.inline).onAppear { notes = initial }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save") { if var study = store.studies.first(where: { $0.id == studyID }) { study.notes = notes; store.update(study) }; dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { if var study = store.studies.first(where: { $0.id == studyID }) { study.notes = notes; if store.update(study) { dismiss() } } } }
             }
+            .modifier(EarErrorAlert())
     }
 }

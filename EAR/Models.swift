@@ -24,7 +24,7 @@ enum DAW: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct Moment: Codable, Identifiable, Hashable {
+struct Moment: Codable, Identifiable, Hashable, Sendable {
     var id: Int
     var start: Double
     var end: Double
@@ -33,7 +33,7 @@ struct Moment: Codable, Identifiable, Hashable {
     var label: String
 }
 
-struct AudioMetrics: Codable {
+struct AudioMetrics: Codable, Sendable {
     var duration: Double
     var sampleRate: Double
     var channels: Int
@@ -55,7 +55,7 @@ struct AudioMetrics: Codable {
     var moments: [Moment]
 }
 
-struct Study: Codable, Identifiable {
+struct Study: Codable, Identifiable, Sendable {
     var id = UUID()
     var title: String
     var created = Date()

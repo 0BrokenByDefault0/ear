@@ -51,7 +51,7 @@ enum AudioAnalyzer {
             try Task.checkCancellation()
             try file.read(into: buffer, frameCount: AVAudioFrameCount(n))
             let count = Int(buffer.frameLength)
-            guard count > 0, let pcm = buffer.floatChannelData else { break }
+            guard count > 0, let pcm = buffer.floatChannelData else { throw EarError.message("Audio decoding stopped before the end of the file. Try a fresh audio export.") }
             for i in 0..<n {
                 guard i < count else { mid[i] = 0; side[i] = 0; continue }
                 let l = Double(pcm[0][i]), r = Double(pcm[channels == 1 ? 0 : 1][i])
@@ -100,6 +100,7 @@ enum AudioAnalyzer {
             let label = moments.isEmpty ? "Opening" : change > 2.5 ? "Energy lift" : change < -2.5 ? "Pullback" : "Steady passage"
             moments.append(Moment(id: moments.count, start: Double(start) / frameRate, end: min(duration, Double(start + part.count) / frameRate), level: level, change: change, label: label))
         }
+        try Task.checkCancellation()
         return AudioMetrics(duration: Double(samples) / rate, sampleRate: rate, channels: channels,
             peak: db(peak), rms: db(rms), crest: db(peak) - db(rms),
             correlation: max(-1, min(1, cross / max(1e-20, sqrt(sumL*sumR)))),

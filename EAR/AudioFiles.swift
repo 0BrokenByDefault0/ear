@@ -2,8 +2,40 @@ import Foundation
 import AVFoundation
 
 enum AudioFiles {
+    static func importCopy(source: URL, destination: URL) throws {
+        guard source.isFileURL, !FileManager.default.fileExists(atPath: destination.path) else {
+            throw EarError.message("Choose an audio file from Files.")
+        }
+        let access = source.startAccessingSecurityScopedResource()
+        defer { if access { source.stopAccessingSecurityScopedResource() } }
+        var coordinationError: NSError?
+        var result: Result<Void, Error> = .failure(EarError.message("The file provider did not make this audio available. Download it in Files and try again."))
+        // File providers (including iCloud) must finish preparing their local copy before reading.
+        NSFileCoordinator().coordinate(readingItemAt: source, options: [], error: &coordinationError) { url in
+            result = Result {
+                try Task.checkCancellation()
+                let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+                guard values.isRegularFile == true, let size = values.fileSize, size > 0, size <= 500_000_000 else {
+                    throw EarError.message("Choose a nonempty audio file no larger than 500 MB.")
+                }
+                try FileManager.default.copyItem(at: url, to: destination)
+                try Task.checkCancellation()
+                let copied = try destination.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                guard copied > 0, copied <= 500_000_000 else { throw EarError.message("Choose an audio file no larger than 500 MB.") }
+            }
+        }
+        do {
+            if let coordinationError { throw coordinationError }
+            try result.get()
+        } catch { try? FileManager.default.removeItem(at: destination); throw error }
+    }
+
     static func mono(source: URL, destination: URL) throws {
         let input = try AVAudioFile(forReading: source, commonFormat: .pcmFormatFloat32, interleaved: false)
+        guard (1...2).contains(input.processingFormat.channelCount), input.length > 0,
+              !FileManager.default.fileExists(atPath: destination.path) else { throw EarError.message("Choose a mono or stereo source and a new output file.") }
+        var complete = false
+        defer { if !complete { try? FileManager.default.removeItem(at: destination) } }
         guard let format = AVAudioFormat(standardFormatWithSampleRate: input.processingFormat.sampleRate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: input.processingFormat, frameCapacity: 8192),
               let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 8192) else { throw EarError.message("Could not prepare mono playback.") }
@@ -12,10 +44,16 @@ enum AudioFiles {
             try Task.checkCancellation()
             try input.read(into: buffer)
             output.frameLength = buffer.frameLength
-            guard buffer.frameLength > 0, let a = buffer.floatChannelData, let b = output.floatChannelData else { break }
-            for i in 0..<Int(buffer.frameLength) { b[0][i] = (a[0][i] + a[input.processingFormat.channelCount == 1 ? 0 : 1][i]) * 0.5 }
+            guard buffer.frameLength > 0, let a = buffer.floatChannelData, let b = output.floatChannelData else { throw EarError.message("Audio decoding stopped before the end of the file.") }
+            for i in 0..<Int(buffer.frameLength) {
+                let left = a[0][i], right = a[input.processingFormat.channelCount == 1 ? 0 : 1][i]
+                guard left.isFinite, right.isFinite else { throw EarError.message("The file contains invalid audio samples.") }
+                b[0][i] = left * 0.5 + right * 0.5
+            }
             try writer.write(from: output)
         }
+        try Task.checkCancellation()
+        complete = true
     }
 
     // Original deterministic instrumental: 96 BPM, kick/bass, wide pad, hats and a breakdown.
