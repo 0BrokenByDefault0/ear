@@ -58,9 +58,13 @@ struct RootView: View {
             Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: importing) } }
             Tab("Lab", systemImage: "sparkles", value: 2) { NavigationStack { LabView() } }
         }
-        .fileImporter(isPresented: importing, allowedContentTypes: [.audio, .data]) { result in
+        .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.audio, .data], allowsMultipleSelection: true) { result in
             switch result {
-            case .success(let url):
+            case .success(let urls):
+                guard urls.count == 1, let url = urls.first else {
+                    store.error = "Choose one audio file at a time, then tap Open."
+                    return
+                }
                 earTrace("Native file selection received")
                 queueImport(url)
             case .failure(let error):
@@ -129,14 +133,14 @@ struct ListenView: View {
                     recordingControls
                 } else {
                     Button { importing = true } label: {
-                        HStack { Image(systemName: "plus"); Text("Pick a file").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8)
+                        HStack { Image(systemName: "plus"); Text("Pick a file").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8).contentShape(Rectangle())
                     }.buttonStyle(.glassProminent).controlSize(.large).tint(Ink.primary).foregroundStyle(Ink.background).accessibilityIdentifier("importAudio").disabled(!store.canStartStudy)
                     HStack(spacing: 12) {
                         Button { Task { await store.startRecording() } } label: { Label(store.requestingMicrophone ? "Requesting…" : "Capture", systemImage: "mic").frame(maxWidth: .infinity, minHeight: 44) }.accessibilityIdentifier("captureAudio")
                         Button { store.demo() } label: { Label("Try a study", systemImage: "play.circle").frame(maxWidth: .infinity, minHeight: 30) }.accessibilityIdentifier("demoStudy")
                     }.buttonStyle(.glass).controlSize(.regular).padding(.top, 12).disabled(!store.canStartStudy)
                     Text("WAV · AIFF · MP3 · M4A · AAC · FLAC · CAF").font(.system(.caption2, design: .monospaced)).foregroundStyle(Ink.secondary).multilineTextAlignment(.center).frame(maxWidth: .infinity).padding(.top, 17)
-                    Text("Files, iCloud Drive or a 30-second capture").font(.caption2).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 6)
+                    Text("Choose one audio file, then tap Open.").font(.caption2).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 6)
                 }
                 Rule().padding(.top, 30).padding(.bottom, 22)
                 HStack(alignment: .top, spacing: 20) {

@@ -47,7 +47,10 @@ import XCTest
         waitForExpectations(timeout: 10)
         file.tap()
         let open = app.buttons["Open"]
-        if open.waitForExistence(timeout: 2) { open.tap() }
+        XCTAssertTrue(open.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(open.isEnabled, app.debugDescription)
+        shot("Selected-file-\(name)")
+        open.tap()
         shot("File-selection-\(name)")
     }
     func testFilePickerCancelReopenInvalid() {
