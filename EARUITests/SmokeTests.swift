@@ -38,14 +38,12 @@ import XCTest
             }
         }
         XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
-        if app.collectionViews["File View"].value as? String == "Icon Mode" {
-            app.buttons["OverflowBarButtonItem"].tap()
-            XCTAssertTrue(app.buttons["List"].waitForExistence(timeout: 5), app.debugDescription)
-            app.buttons["List"].tap()
-        }
         expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: file)
         waitForExpectations(timeout: 10)
-        file.tap()
+        shot("Before-file-selection-\(name)")
+        let title = file.staticTexts[name]
+        XCTAssertTrue(title.waitForExistence(timeout: 5), app.debugDescription)
+        title.tap()
         let open = app.buttons["Open"]
         XCTAssertTrue(open.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(open.isEnabled, app.debugDescription)
