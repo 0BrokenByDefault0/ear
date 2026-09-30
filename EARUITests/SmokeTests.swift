@@ -21,6 +21,14 @@ import XCTest
     }
     func chooseFile(_ name: String, in app: XCUIApplication) {
         let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+        if !file.waitForExistence(timeout: 3) {
+            let local = app.cells["DOC.sidebar.item.On My iPhone"]
+            XCTAssertTrue(local.waitForExistence(timeout: 15), app.debugDescription)
+            local.tap()
+            let folder = app.cells.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "EAR", "EAR,")).firstMatch
+            XCTAssertTrue(folder.waitForExistence(timeout: 15), app.debugDescription)
+            folder.tap()
+        }
         XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
         if app.collectionViews["File View"].value as? String == "Icon Mode" {
             app.buttons["OverflowBarButtonItem"].tap()

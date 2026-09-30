@@ -67,10 +67,6 @@ struct RootView: View {
                 store.error = "Could not open the selected file. \(error.localizedDescription)"
             }
         }
-        #if DEBUG
-        .fileDialogDefaultDirectory(ProcessInfo.processInfo.arguments.contains("--import-ui-check")
-            ? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] : nil)
-        #endif
         .sheet(item: $sheet, onDismiss: didDismiss) { item in
             switch item {
             case .study:
