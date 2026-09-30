@@ -31,15 +31,16 @@ struct AudioFilePicker: UIViewControllerRepresentable {
         return picker
     }
 
-    func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) { }
+    func updateUIViewController(_ controller: UIDocumentPickerViewController, context: Context) {
+        context.coordinator.completion = completion
+    }
 
     @MainActor final class Coordinator: NSObject, UIDocumentPickerDelegate {
-        private var completion: ((URL?) -> Void)?
+        var completion: (URL?) -> Void
         init(completion: @escaping (URL?) -> Void) { self.completion = completion }
         private func finish(_ url: URL?) {
-            earTrace("File picker returned selection=\(url != nil); callback=\(completion != nil)")
-            let callback = completion; completion = nil
-            callback?(url)
+            earTrace("File picker returned selection=\(url != nil)")
+            completion(url)
         }
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) { finish(urls.first) }
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { finish(nil) }
