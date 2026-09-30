@@ -27,10 +27,18 @@ import XCTest
         func choose(_ name: String) {
             let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
             XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
-            // A Files icon cell includes noninteractive metadata beneath its thumbnail.
-            file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+            // Use the Files row's accessibility hit point instead of a thumbnail coordinate.
+            if app.collectionViews["File View"].value as? String == "Icon Mode" {
+                app.buttons["OverflowBarButtonItem"].tap()
+                XCTAssertTrue(app.buttons["List"].waitForExistence(timeout: 5), app.debugDescription)
+                app.buttons["List"].tap()
+            }
+            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: file)
+            waitForExpectations(timeout: 10)
+            file.tap()
             let open = app.buttons["Open"]
             if open.waitForExistence(timeout: 2) { open.tap() }
+            shot("File-selection-\(name)")
         }
         choose("EAR Invalid Check")
         XCTAssertTrue(app.alerts["EAR"].waitForExistence(timeout: 15))
