@@ -100,14 +100,14 @@ struct TransportView: View {
         if let study = store.current {
             VStack(spacing: 2) {
                 HStack(spacing: 12) {
-                    Button { store.seek(max(0, store.position - 5)) } label: { Image(systemName: "gobackward.5").frame(width: 44, height: 44) }.accessibilityLabel("Back five seconds")
-                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44) }.disabled(store.preparingMono).accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
+                    Button { store.seek(max(0, store.position - 5)) } label: { Image(systemName: "gobackward.5").frame(width: 44, height: 44).contentShape(Rectangle()) }.accessibilityLabel("Back five seconds")
+                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44).contentShape(Rectangle()) }.disabled(store.preparingMono).accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(clock(scrubbing ? scrubPosition : store.position)) / \(clock(study.metrics.duration))").font(.system(.caption, design: .monospaced)).monospacedDigit()
                         Text(store.loopStart.map { "Start marked · \(clock($0))" } ?? (store.loop == nil ? "Listen for the details" : "Looping · \(store.loop?.label ?? "")")).font(.caption2).foregroundStyle(Ink.secondary).lineLimit(1)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     Button { store.toggleMono() } label: {
-                        Group { if store.preparingMono { ProgressView() } else { Text(store.mono ? "MONO" : "L / R").font(.system(.caption2, design: .monospaced)).foregroundStyle(store.mono ? Ink.accent : Ink.primary) } }.frame(width: 48, height: 44)
+                        Group { if store.preparingMono { ProgressView() } else { Text(store.mono ? "MONO" : "L / R").font(.system(.caption2, design: .monospaced)).foregroundStyle(store.mono ? Ink.accent : Ink.primary) } }.frame(width: 48, height: 44).contentShape(Rectangle())
                     }.disabled(study.metrics.channels == 1 || store.preparingMono).accessibilityLabel(store.mono ? "Switch to stereo" : "Audition in mono").accessibilityIdentifier("monoAudition")
                 }.buttonStyle(.plain)
                 HStack(spacing: 4) {
@@ -124,7 +124,7 @@ struct TransportView: View {
                         Button("Set loop end here", systemImage: "b.circle") { store.markLoopEnd() }.disabled(store.loopStart == nil)
                         if store.loop != nil || store.loopStart != nil { Button("Clear loop", systemImage: "xmark.circle") { store.clearLoop() } }
                     } label: {
-                        Image(systemName: "repeat").foregroundStyle(store.loop != nil || store.loopStart != nil ? Ink.accent : Ink.secondary).frame(width: 44, height: 44)
+                        Image(systemName: "repeat").foregroundStyle(store.loop != nil || store.loopStart != nil ? Ink.accent : Ink.secondary).frame(width: 44, height: 44).contentShape(Rectangle())
                     }.accessibilityLabel("Phrase loop").accessibilityIdentifier("phraseLoop")
                 }.padding(.leading, 12)
             }.padding(.horizontal, 10).padding(.vertical, 8)

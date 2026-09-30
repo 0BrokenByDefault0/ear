@@ -5,6 +5,11 @@ import XCTest
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
+    func expectPlayback(_ label: String, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+        let state = NSPredicate(format: "label == %@", label)
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: state, object: app.buttons["transportPlay"])], timeout: 8)
+        XCTAssertEqual(result, .completed, app.debugDescription, file: file, line: line)
+    }
     func testFilePickerCancelReopenInvalidAndImport() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -20,9 +25,10 @@ import XCTest
         waitForExpectations(timeout: 10)
         pick.tap()
         func choose(_ name: String) {
-            let file = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+            let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
             XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
-            file.tap()
+            // A Files icon cell includes noninteractive metadata beneath its thumbnail.
+            file.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
             let open = app.buttons["Open"]
             if open.waitForExistence(timeout: 2) { open.tap() }
         }
@@ -32,10 +38,10 @@ import XCTest
         app.alerts.buttons["OK"].tap()
         pick.tap()
         choose("EAR Import Check")
-        XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 45))
+        XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertEqual(app.staticTexts["studyTitle"].label, "EAR Import Check")
         app.buttons["transportPlay"].tap()
-        XCTAssertEqual(app.buttons["transportPlay"].label, "Pause")
+        expectPlayback("Pause", in: app)
         shot("00-Imported-audio")
         app.buttons["closeStudy"].tap()
         app.tabBars.buttons["Notebook"].tap()
@@ -78,7 +84,7 @@ import XCTest
         XCTAssertTrue(app.staticTexts["Afterglow"].exists)
         shot("02-Study")
         app.buttons["transportPlay"].tap()
-        XCTAssertEqual(app.buttons["transportPlay"].label, "Pause")
+        expectPlayback("Pause", in: app)
         app.buttons["monoAudition"].tap()
         let mono = NSPredicate(format: "label == %@", "Switch to stereo")
         expectation(for: mono, evaluatedWith: app.buttons["monoAudition"])
@@ -140,13 +146,14 @@ import XCTest
         XCTAssertTrue(editor.waitForExistence(timeout: 5))
         XCTAssertTrue((editor.value as? String ?? "").contains("Listen to the phrase ending."))
         app.buttons["Cancel"].tap()
-        app.sliders["playbackPosition"].adjust(toNormalizedSliderPosition: 0.97)
+        app.sliders["playbackPosition"].adjust(toNormalizedSliderPosition: 0.80)
         app.buttons["transportPlay"].tap()
+        expectPlayback("Pause", in: app)
         let stopped = NSPredicate(format: "label == %@", "Play")
         expectation(for: stopped, evaluatedWith: app.buttons["transportPlay"])
-        waitForExpectations(timeout: 10)
+        waitForExpectations(timeout: 15)
         XCTAssertEqual(app.sliders["playbackPosition"].value as? String, "0:30")
         app.buttons["transportPlay"].tap()
-        XCTAssertEqual(app.buttons["transportPlay"].label, "Pause")
+        expectPlayback("Pause", in: app)
     }
 }
