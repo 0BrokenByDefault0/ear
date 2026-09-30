@@ -17,17 +17,25 @@ import XCTest
         app.launch()
         let pick = app.buttons["importAudio"]
         XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 15), app.debugDescription)
         return app
     }
     func chooseFile(_ name: String, in app: XCUIApplication) {
         let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
         if !file.waitForExistence(timeout: 3) {
-            let local = app.cells["DOC.sidebar.item.On My iPhone"]
-            XCTAssertTrue(local.waitForExistence(timeout: 15), app.debugDescription)
-            local.tap()
-            let folder = app.cells.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "EAR", "EAR,")).firstMatch
-            XCTAssertTrue(folder.waitForExistence(timeout: 15), app.debugDescription)
-            folder.tap()
+            let browse = app.buttons["Browse"]
+            XCTAssertTrue(browse.waitForExistence(timeout: 15), app.debugDescription)
+            browse.tap()
+            if !file.waitForExistence(timeout: 3) {
+                let folder = app.cells.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "EAR", "EAR,")).firstMatch
+                if !folder.exists {
+                    let local = app.cells["DOC.sidebar.item.On My iPhone"]
+                    XCTAssertTrue(local.waitForExistence(timeout: 15), app.debugDescription)
+                    local.tap()
+                }
+                XCTAssertTrue(folder.waitForExistence(timeout: 15), app.debugDescription)
+                folder.tap()
+            }
         }
         XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
         if app.collectionViews["File View"].value as? String == "Icon Mode" {
