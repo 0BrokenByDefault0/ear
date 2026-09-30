@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UIKit
 
-/// The provider prepares a local copy before returning it; originals stay untouched.
+/// Open the provider's selection; AudioFiles makes EAR's coordinated private copy.
 struct AudioFilePicker: UIViewControllerRepresentable {
     var completion: (URL?) -> Void
 
@@ -11,7 +11,7 @@ struct AudioFilePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         // Audio and generic provider data are distinct filters; explicitly accept both.
         // Decode the selection to validate it instead of trusting its extension.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio, .data], asCopy: true)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio, .data], asCopy: false)
         earTrace("File picker created")
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false

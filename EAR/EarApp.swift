@@ -34,7 +34,6 @@ struct RootView: View {
     @State private var sheet: Sheet?
     @State private var pendingImport: URL?
     @State private var pendingAccess = false
-    @State private var pendingIsCopy = false
     private var importing: Binding<Bool> {
         Binding(get: { sheet == .files }, set: { if $0 && store.canStartStudy { store.pause(); sheet = .files } })
     }
@@ -56,7 +55,7 @@ struct RootView: View {
             switch item {
             case .files:
                 AudioFilePicker { url in
-                    if let url { queueImport(url, isPickerCopy: true) } else { sheet = nil }
+                    if let url { queueImport(url) } else { sheet = nil }
                 }.ignoresSafeArea()
             case .study:
                 NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
@@ -84,11 +83,9 @@ struct RootView: View {
         }
     }
 
-    private func queueImport(_ url: URL, isPickerCopy: Bool = false) {
+    private func queueImport(_ url: URL) {
         if pendingAccess { pendingImport?.stopAccessingSecurityScopedResource() }
-        if pendingIsCopy, let previous = pendingImport { try? FileManager.default.removeItem(at: previous) }
         pendingImport = url
-        pendingIsCopy = isPickerCopy
         pendingAccess = url.startAccessingSecurityScopedResource()
         // Wait for the picker (or an existing study) to finish dismissing before presenting results.
         if sheet != nil { sheet = nil; store.showStudy = false }
@@ -98,9 +95,9 @@ struct RootView: View {
     private func didDismiss() {
         store.pause(); store.showStudy = false
         guard let url = pendingImport else { return }
-        store.importFile(url, removeSourceAfterImport: pendingIsCopy)
+        store.importFile(url)
         if pendingAccess { url.stopAccessingSecurityScopedResource() }
-        pendingImport = nil; pendingAccess = false; pendingIsCopy = false
+        pendingImport = nil; pendingAccess = false
     }
 }
 
