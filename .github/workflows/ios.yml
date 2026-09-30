@@ -91,24 +91,26 @@ jobs:
       - name: Build simulator tests
         run: |
           set -o pipefail
-          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO build-for-testing 2>&1 | tee build/simulator-build.log
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator ONLY_ACTIVE_ARCH=YES build-for-testing 2>&1 | tee build/simulator-build.log
+          codesign --verify --deep --strict build/simulator/Build/Products/Debug-iphonesimulator/EAR.app
+          codesign -d --entitlements :- build/simulator/Build/Products/Debug-iphonesimulator/EAR.app > build/simulator-signing.log 2>&1
       - name: Native file import
         run: |
           set -o pipefail
-          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Import.xcresult -only-testing:EARUITests/SmokeTests/testFilePickerImportsAudio -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee build/import-ui.log
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Import.xcresult -only-testing:EARUITests/SmokeTests/testFilePickerImportsAudio -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 test-without-building 2>&1 | tee build/import-ui.log
       - name: Native file cancellation and recovery
         run: |
           set -o pipefail
-          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Recovery.xcresult -only-testing:EARUITests/SmokeTests/testFilePickerCancelReopenInvalid -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee build/recovery-ui.log
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Recovery.xcresult -only-testing:EARUITests/SmokeTests/testFilePickerCancelReopenInvalid -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 test-without-building 2>&1 | tee build/recovery-ui.log
       - name: Native listening and Lab
         run: |
           set -o pipefail
-          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Smoke.xcresult -skip-testing:EARUITests/SmokeTests/testFilePickerImportsAudio -skip-testing:EARUITests/SmokeTests/testFilePickerCancelReopenInvalid -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee build/smoke.log
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Smoke.xcresult -skip-testing:EARUITests/SmokeTests/testFilePickerImportsAudio -skip-testing:EARUITests/SmokeTests/testFilePickerCancelReopenInvalid -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 test-without-building 2>&1 | tee build/smoke.log
       - name: Collect import and playback diagnostics
         if: always()
         run: |
           mkdir -p build
-          python3 scripts/bounded.py xcrun simctl spawn "$EAR_SIM" log show --last 20m --style compact --predicate 'subsystem == "com.aeon.ear"' > build/runtime-diagnostics.log 2>&1 || true
+          python3 scripts/bounded.py xcrun simctl spawn "$EAR_SIM" log show --last 20m --info --style compact --predicate 'subsystem == "com.aeon.ear" OR subsystem CONTAINS[c] "fileprovider" OR subsystem CONTAINS[c] "documentmanager"' > build/runtime-diagnostics.log 2>&1 || true
       - name: Collect screenshots
         if: always()
         run: |
