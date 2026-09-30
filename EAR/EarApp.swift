@@ -9,61 +9,87 @@ import AVFoundation
         WindowGroup {
             RootView().environment(store).preferredColorScheme(.dark).tint(Ink.accent)
                 .onChange(of: phase) { _, value in
-                    if value == .background { store.suspendAudio() }
+                    if value == .background { store.suspendAudio(reason: "background") }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { note in
                     if let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-                       type == AVAudioSession.InterruptionType.began.rawValue { store.suspendAudio() }
+                       type == AVAudioSession.InterruptionType.began.rawValue { store.suspendAudio(reason: "interruption") }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.mediaServicesWereResetNotification)) { _ in
-                    store.suspendAudio()
+                    store.suspendAudio(reason: "media services reset")
                     if let study = store.current { store.open(study) }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { note in
                     if let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio() }
+                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio(reason: "output disconnected") }
                 }
-                .onOpenURL { url in if url.isFileURL { store.importFile(url) } }
         }
     }
 }
 
 struct RootView: View {
+    private enum Sheet: String, Identifiable { case study, settings; var id: String { rawValue } }
     @Environment(EarStore.self) private var store
     @State private var tab = 0
-    @State private var importing = false
-    @State private var settings = false
+    @State private var sheet: Sheet?
+    @State private var pickingFile = false
+    @State private var pendingImport: URL?
+    @State private var pendingAccess = false
+    private var importing: Binding<Bool> {
+        Binding(get: { pickingFile }, set: { show in
+            if show {
+                guard store.canStartStudy, sheet == nil else { return }
+                store.pause()
+            }
+            pickingFile = show
+        })
+    }
     var body: some View {
-        @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Listen", systemImage: "waveform", value: 0) {
                 NavigationStack {
-                    ListenView(importing: $importing, active: tab == 0 && !store.showStudy && !settings)
+                    ListenView(importing: importing, active: tab == 0 && sheet == nil && !pickingFile)
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) { Text("EAR").font(.system(.subheadline, design: .monospaced)).tracking(5).foregroundStyle(Ink.primary) }
-                            ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "slider.horizontal.3") { settings = true } }
+                            ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "slider.horizontal.3") { sheet = .settings }.disabled(!store.canStartStudy) }
                         }
                 }
             }
-            Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: $importing) } }
+            Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: importing) } }
             Tab("Lab", systemImage: "sparkles", value: 2) { NavigationStack { LabView() } }
         }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
+        .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.audio, .data], allowsMultipleSelection: true) { result in
             switch result {
-            case .success(let urls): if let url = urls.first { store.importFile(url) }
-            case .failure(let error): store.error = "The file could not be opened. \(error.localizedDescription)"
+            case .success(let urls):
+                guard urls.count == 1, let url = urls.first else {
+                    store.error = "Choose one audio file at a time, then tap Open."
+                    return
+                }
+                earTrace("Native file selection received")
+                queueImport(url)
+            case .failure(let error):
+                store.error = "Could not open the selected file. \(error.localizedDescription)"
             }
         }
-        .sheet(isPresented: $store.showStudy, onDismiss: { store.pause() }) {
-            NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
+        .sheet(item: $sheet, onDismiss: didDismiss) { item in
+            switch item {
+            case .study:
+                NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
+            case .settings:
+                NavigationStack { SettingsView() }.presentationBackground(Ink.background)
+            }
         }
-        .sheet(isPresented: $settings) { NavigationStack { SettingsView() }.presentationBackground(Ink.background) }
-        .onChange(of: store.busy) { _, busy in if busy { settings = false } }
-        .modifier(EarErrorAlert(active: !store.showStudy && !settings))
+        .onChange(of: store.showStudy) { _, show in
+            if show { sheet = .study }
+            else if sheet == .study { sheet = nil }
+        }
+        .onOpenURL { url in if url.isFileURL { queueImport(url) } }
+        .modifier(EarErrorAlert(active: sheet == nil && !pickingFile))
         .overlay {
             if store.busy {
                 VStack(spacing: 22) {
-                    ProgressView(value: store.progress).tint(Ink.accent)
+                    if store.progress == 0 { ProgressView().tint(Ink.accent) }
+                    else { ProgressView(value: store.progress).tint(Ink.accent) }
                     Text(store.status).font(.headline)
                     Text("Reading rhythm, tone, space and movement.").font(.subheadline).foregroundStyle(Ink.secondary).multilineTextAlignment(.center)
                     Button("Cancel") { store.cancelAnalysis() }.buttonStyle(.glass)
@@ -71,6 +97,24 @@ struct RootView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity).background(.black.opacity(0.75)).accessibilityAddTraits(.isModal)
             }
         }
+    }
+
+    private func queueImport(_ url: URL) {
+        if pendingAccess { pendingImport?.stopAccessingSecurityScopedResource() }
+        pendingImport = url
+        pendingAccess = url.startAccessingSecurityScopedResource()
+        // fileImporter completes after its presentation binding resets. External Open In
+        // URLs may arrive while a study or settings sheet still needs to dismiss.
+        if sheet != nil { sheet = nil; store.showStudy = false }
+        else { didDismiss() }
+    }
+
+    private func didDismiss() {
+        store.pause(); store.showStudy = false
+        guard let url = pendingImport else { return }
+        store.importFile(url)
+        if pendingAccess { url.stopAccessingSecurityScopedResource() }
+        pendingImport = nil; pendingAccess = false
     }
 }
 
@@ -89,13 +133,14 @@ struct ListenView: View {
                     recordingControls
                 } else {
                     Button { importing = true } label: {
-                        HStack { Image(systemName: "plus"); Text("Bring a song").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8)
+                        HStack { Image(systemName: "plus"); Text("Pick a file").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8).contentShape(Rectangle())
                     }.buttonStyle(.glassProminent).controlSize(.large).tint(Ink.primary).foregroundStyle(Ink.background).accessibilityIdentifier("importAudio").disabled(!store.canStartStudy)
                     HStack(spacing: 12) {
                         Button { Task { await store.startRecording() } } label: { Label(store.requestingMicrophone ? "Requesting…" : "Capture", systemImage: "mic").frame(maxWidth: .infinity, minHeight: 44) }.accessibilityIdentifier("captureAudio")
                         Button { store.demo() } label: { Label("Try a study", systemImage: "play.circle").frame(maxWidth: .infinity, minHeight: 30) }.accessibilityIdentifier("demoStudy")
                     }.buttonStyle(.glass).controlSize(.regular).padding(.top, 12).disabled(!store.canStartStudy)
-                    Text("AUDIO FILES OR A 30-SECOND CAPTURE").font(.system(size: 9, design: .monospaced)).tracking(1.4).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 17)
+                    Text("WAV · AIFF · MP3 · M4A · AAC · FLAC · CAF").font(.system(.caption2, design: .monospaced)).foregroundStyle(Ink.secondary).multilineTextAlignment(.center).frame(maxWidth: .infinity).padding(.top, 17)
+                    Text("Choose one audio file, then tap Open.").font(.caption2).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 6)
                 }
                 Rule().padding(.top, 30).padding(.bottom, 22)
                 HStack(alignment: .top, spacing: 20) {
@@ -160,29 +205,6 @@ struct NotebookView: View {
     }
 }
 
-struct LabView: View {
-    @AppStorage("ear.daw") private var daw = DAW.studio.rawValue
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Eyebrow("Learn by making").padding(.top, 22)
-                Text("The listening lab.").font(Ink.display(42)).padding(.vertical, 14)
-                Text("One deliberate experiment at a time. Take these into your own session.").font(.subheadline).foregroundStyle(Ink.secondary).lineSpacing(4).padding(.bottom, 24)
-                Picker("Your DAW", selection: $daw) { ForEach(DAW.allCases) { Text($0.rawValue).tag($0.rawValue) } }.pickerStyle(.segmented).padding(.bottom, 26)
-                ForEach(Lens.allCases) { lens in
-                    Rule()
-                    NavigationLink { ExperimentView(lens: lens, studyID: nil) } label: {
-                        let experiment = Experiment.make(lens, daw: DAW(rawValue: daw) ?? .studio, tempo: nil)
-                        LensRow(lens: lens, title: experiment.title, detail: "\(experiment.minutes) MIN · \(daw.uppercased())")
-                    }.buttonStyle(.plain)
-                }
-                Rule()
-                Text("Pair this practice with Stufo’s deeper lessons. EAR’s experiments can be shared as notes; a direct Stufo handoff isn’t available in its current build.").font(.caption).foregroundStyle(Ink.secondary).lineSpacing(4).padding(.top, 24)
-            }.padding(.horizontal, 26).padding(.bottom, 28).frame(maxWidth: 700).frame(maxWidth: .infinity)
-        }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Lab").navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("ear.daw") private var daw = DAW.studio.rawValue
@@ -201,7 +223,7 @@ struct SettingsView: View {
                 Link("Fender Studio Pro manual", destination: URL(string: "https://s1manual.presonus.com/")!)
                 Link("Logic Pro user guide", destination: URL(string: "https://support.apple.com/guide/logicpro/welcome/mac")!)
             }
-            Section { Text("EAR 1.1 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
+            Section { Text("EAR 1.2 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
         }.scrollContentBackground(.hidden).background(Ink.background).navigationTitle("Your studio").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .modifier(EarErrorAlert())

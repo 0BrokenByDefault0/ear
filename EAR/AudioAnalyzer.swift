@@ -10,7 +10,12 @@ enum EarError: LocalizedError {
 enum AudioAnalyzer {
     // Streaming decode: bounded PCM memory, no network and no source separation.
     static func analyze(_ url: URL, progress: @Sendable (Double) -> Void = { _ in }) throws -> AudioMetrics {
-        let file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false)
+        let file: AVAudioFile
+        do { file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32, interleaved: false) }
+        catch {
+            let detail = error as NSError
+            throw EarError.message("This file could not be decoded as audio. Choose an unprotected WAV, AIFF, MP3, M4A, AAC, FLAC or CAF file. If it is already audio, download it fully in Files or export a fresh WAV. (\(detail.domain) \(detail.code))")
+        }
         let rate = file.processingFormat.sampleRate
         let channels = Int(file.processingFormat.channelCount)
         let duration = Double(file.length) / rate

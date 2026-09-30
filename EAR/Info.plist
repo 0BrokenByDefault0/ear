@@ -41,6 +41,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>EAR captures up to 30 seconds of nearby audio to analyze production characteristics on your device.</string>
 	<key>UIAppFonts</key>

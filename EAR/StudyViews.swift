@@ -100,14 +100,14 @@ struct TransportView: View {
         if let study = store.current {
             VStack(spacing: 2) {
                 HStack(spacing: 12) {
-                    Button { store.seek(max(0, store.position - 5)) } label: { Image(systemName: "gobackward.5").frame(width: 44, height: 44) }.accessibilityLabel("Back five seconds")
-                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44) }.disabled(store.preparingMono).accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
+                    Button { store.seek(max(0, store.position - 5)) } label: { Image(systemName: "gobackward.5").frame(width: 44, height: 44).contentShape(Rectangle()) }.accessibilityLabel("Back five seconds")
+                    Button { store.togglePlayback() } label: { Image(systemName: store.playing ? "pause.fill" : "play.fill").font(.title2).frame(width: 46, height: 44).contentShape(Rectangle()) }.disabled(store.preparingMono).accessibilityLabel(store.playing ? "Pause" : "Play").accessibilityIdentifier("transportPlay")
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(clock(scrubbing ? scrubPosition : store.position)) / \(clock(study.metrics.duration))").font(.system(.caption, design: .monospaced)).monospacedDigit()
                         Text(store.loopStart.map { "Start marked · \(clock($0))" } ?? (store.loop == nil ? "Listen for the details" : "Looping · \(store.loop?.label ?? "")")).font(.caption2).foregroundStyle(Ink.secondary).lineLimit(1)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                     Button { store.toggleMono() } label: {
-                        Group { if store.preparingMono { ProgressView() } else { Text(store.mono ? "MONO" : "L / R").font(.system(.caption2, design: .monospaced)).foregroundStyle(store.mono ? Ink.accent : Ink.primary) } }.frame(width: 48, height: 44)
+                        Group { if store.preparingMono { ProgressView() } else { Text(store.mono ? "MONO" : "L / R").font(.system(.caption2, design: .monospaced)).foregroundStyle(store.mono ? Ink.accent : Ink.primary) } }.frame(width: 48, height: 44).contentShape(Rectangle())
                     }.disabled(study.metrics.channels == 1 || store.preparingMono).accessibilityLabel(store.mono ? "Switch to stereo" : "Audition in mono").accessibilityIdentifier("monoAudition")
                 }.buttonStyle(.plain)
                 HStack(spacing: 4) {
@@ -124,7 +124,7 @@ struct TransportView: View {
                         Button("Set loop end here", systemImage: "b.circle") { store.markLoopEnd() }.disabled(store.loopStart == nil)
                         if store.loop != nil || store.loopStart != nil { Button("Clear loop", systemImage: "xmark.circle") { store.clearLoop() } }
                     } label: {
-                        Image(systemName: "repeat").foregroundStyle(store.loop != nil || store.loopStart != nil ? Ink.accent : Ink.secondary).frame(width: 44, height: 44)
+                        Image(systemName: "repeat").foregroundStyle(store.loop != nil || store.loopStart != nil ? Ink.accent : Ink.secondary).frame(width: 44, height: 44).contentShape(Rectangle())
                     }.accessibilityLabel("Phrase loop").accessibilityIdentifier("phraseLoop")
                 }.padding(.leading, 12)
             }.padding(.horizontal, 10).padding(.vertical, 8)
@@ -154,6 +154,9 @@ struct FindingView: View {
                     NavigationLink { ExperimentView(lens: lens, studyID: studyID) } label: {
                         HStack { VStack(alignment: .leading, spacing: 8) { Eyebrow("Take it into your DAW"); Text("Try the experiment").font(.headline) }; Spacer(); Image(systemName: "arrow.up.right") }.padding(.vertical, 8)
                     }.buttonStyle(.glass).controlSize(.large).accessibilityIdentifier("tryExperiment")
+                    NavigationLink { LensGuideView(lens: lens, studyID: studyID) } label: {
+                        Label("Explore the guide & 4 experiments", systemImage: "book").frame(maxWidth: .infinity, minHeight: 44)
+                    }.buttonStyle(.glass)
                 }.padding(.horizontal, 26).padding(.bottom, 30).frame(maxWidth: 680).frame(maxWidth: .infinity)
             }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle(lens.rawValue).navigationBarTitleDisplayMode(.inline)
                 .safeAreaInset(edge: .bottom) { TransportView().padding(.horizontal, 18).padding(.bottom, 8) }
@@ -164,13 +167,20 @@ struct FindingView: View {
 struct ExperimentView: View {
     @Environment(EarStore.self) private var store
     @AppStorage("ear.daw") private var dawName = DAW.studio.rawValue
+    @AppStorage("ear.lab.tried") private var labTried = ""
     @State private var checked = Set<Int>()
     let lens: Lens
     let studyID: UUID?
+    var experimentID: String? = nil
     private var study: Study? { store.studies.first { $0.id == studyID } }
     private var daw: DAW { DAW(rawValue: dawName) ?? .studio }
-    private var experiment: Experiment { Experiment.make(lens, daw: daw, tempo: study?.tempo) }
-    private var completed: Bool { study?.completed.contains(lens.rawValue) ?? false }
+    private var experiment: Experiment {
+        Experiment.catalog(lens, daw: daw, tempo: study?.tempo).first { $0.id == (experimentID ?? lens.rawValue) }
+            ?? Experiment.make(lens, daw: daw, tempo: study?.tempo)
+    }
+    private var completed: Bool {
+        study?.completed.contains(experiment.id) ?? labTried.split(separator: "\n").contains(Substring(experiment.id))
+    }
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -192,13 +202,16 @@ struct ExperimentView: View {
                 }
                 Rule()
                 VStack(alignment: .leading, spacing: 12) { Eyebrow("The listening check"); Text(experiment.check).font(.body).lineSpacing(5) }.padding(20).background(Ink.surface, in: RoundedRectangle(cornerRadius: 20))
-                if study != nil {
                     Button {
-                        guard var value = study else { return }
-                        if completed { value.completed.removeAll { $0 == lens.rawValue } } else { value.completed.append(lens.rawValue) }
-                        store.update(value)
+                        if var value = study {
+                            if completed { value.completed.removeAll { $0 == experiment.id } } else { value.completed.append(experiment.id) }
+                            store.update(value)
+                        } else {
+                            var saved = Set(labTried.split(separator: "\n").map(String.init))
+                            if completed { saved.remove(experiment.id) } else { saved.insert(experiment.id) }
+                            labTried = saved.sorted().joined(separator: "\n")
+                        }
                     } label: { Label(completed ? "Experiment tried" : "Mark as tried", systemImage: completed ? "checkmark.circle.fill" : "checkmark.circle").frame(maxWidth: .infinity, minHeight: 32) }.buttonStyle(.glassProminent).controlSize(.large).accessibilityIdentifier("completeExperiment")
-                }
                 ShareLink(item: experiment.text(daw: daw)) { Label("Share experiment", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity, minHeight: 35) }.buttonStyle(.glass)
             }.padding(.horizontal, 26).padding(.bottom, 30).frame(maxWidth: 680).frame(maxWidth: .infinity)
         }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Experiment").navigationBarTitleDisplayMode(.inline)

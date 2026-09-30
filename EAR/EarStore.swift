@@ -1,6 +1,13 @@
 import SwiftUI
 import AVFoundation
 import Observation
+import OSLog
+
+func earTrace(_ event: String) {
+    #if DEBUG
+    Logger(subsystem: "com.aeon.ear", category: "Diagnostics").notice("\(event, privacy: .public)")
+    #endif
+}
 
 @MainActor @Observable final class EarStore {
     var studies: [Study] = []
@@ -46,6 +53,16 @@ import Observation
             studies = saved.studies
             if saved.recovered { error = "EAR recovered your notebook from its last good save. Your audio files are unchanged; the most recent edit may need to be repeated." }
         } catch { self.error = "Could not open your notebook. Your saved files have been preserved. \(error.localizedDescription)"; loadFailed = true }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--import-ui-check") {
+            do {
+                let documents = folder.deletingLastPathComponent()
+                let fixture = documents.appendingPathComponent("EAR Import Check.caf")
+                if !FileManager.default.fileExists(atPath: fixture.path) { try AudioFiles.demo(at: fixture) }
+                try Data("Not an audio recording".utf8).write(to: documents.appendingPathComponent("EAR Invalid Check.txt"))
+            } catch { self.error = "Could not prepare import test files. \(error.localizedDescription)" }
+        }
+        #endif
         timer = Task { [weak self] in
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
@@ -58,6 +75,7 @@ import Observation
     deinit { timer?.cancel(); worker?.cancel(); monoWorker?.cancel() }
 
     func importFile(_ source: URL, sourceName: String = "Imported file", removeSourceAfterImport: Bool = false) {
+        earTrace("Import requested; available=\(canStartStudy)")
         guard canStartStudy else {
             error = loadFailed ? "Your notebook must be recovered before adding studies." : "Finish the current capture or analysis before opening another song."
             if removeSourceAfterImport { try? FileManager.default.removeItem(at: source) }
@@ -65,10 +83,16 @@ import Observation
         }
         let reportProgress = begin(status: "Opening your audio file")
         let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension(source.pathExtension.lowercased())
+        // Acquire access before the document-picker callback returns, and hold it through the copy.
+        let access = source.startAccessingSecurityScopedResource()
         worker = Task.detached(priority: .userInitiated) {
-            defer { if removeSourceAfterImport { try? FileManager.default.removeItem(at: source) } }
+            defer {
+                if access { source.stopAccessingSecurityScopedResource() }
+                if removeSourceAfterImport { try? FileManager.default.removeItem(at: source) }
+            }
             do {
                 try AudioFiles.importCopy(source: source, destination: destination)
+                earTrace("Import copy complete")
                 let metrics = try AudioAnalyzer.analyze(destination, progress: reportProgress)
                 try Task.checkCancellation()
                 return Study(title: source.deletingPathExtension().lastPathComponent, filename: destination.lastPathComponent, source: sourceName, metrics: metrics)
@@ -120,8 +144,9 @@ import Observation
                 catch { studies.removeAll { $0.id == study.id }; try? FileManager.default.removeItem(at: audioURL(study)); throw error }
                 busy = false
                 open(study)
+                earTrace("Study saved and opened")
             } catch is CancellationError { }
-            catch { self.error = "Couldn’t finish this study. \(error.localizedDescription)" }
+            catch { earTrace("Study failed: \((error as NSError).domain) \((error as NSError).code)"); self.error = "Couldn’t finish this study. \(error.localizedDescription)" }
         }
     }
     func cancelAnalysis() { analysisRequest = UUID(); status = "Stopping analysis"; worker?.cancel() }
@@ -164,6 +189,7 @@ import Observation
     }
 
     func togglePlayback() {
+        earTrace("Playback tapped; busy=\(busy), recording=\(recording), preparingMono=\(preparingMono)")
         guard !busy, !recording, !requestingMicrophone, !preparingMono else { return }
         if playing { pause(); return }
         do {
@@ -173,9 +199,10 @@ import Observation
             if position >= player.duration - 0.01 { player.currentTime = loop?.start ?? 0 }
             guard player.play() else { throw EarError.message("Playback could not start.") }
             position = player.currentTime; playing = true
+            earTrace("Playback started")
         } catch { self.error = error.localizedDescription }
     }
-    func pause() { if playing { position = player?.currentTime ?? position }; player?.pause(); playing = false }
+    func pause() { if playing { earTrace("Playback paused"); position = player?.currentTime ?? position }; player?.pause(); playing = false }
     func seek(_ seconds: Double) {
         guard let player, seconds.isFinite else { return }
         let time = min(max(0, seconds), player.duration)
@@ -264,7 +291,8 @@ import Observation
             if keep { error = "Record at least 3 seconds so EAR has enough audio to study." }
         }
     }
-    func suspendAudio() {
+    func suspendAudio(reason: String = "lifecycle") {
+        earTrace("Suspending audio: \(reason)")
         recordingRequest = UUID(); requestingMicrophone = false
         pause(); cancelMono()
         if recording { stopRecording(keep: true) }
