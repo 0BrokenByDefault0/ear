@@ -28,7 +28,7 @@ import XCTest
         }
         choose("EAR Invalid Check")
         XCTAssertTrue(app.alerts["EAR"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "decoded as audio")).firstMatch.exists)
+        XCTAssertTrue(app.alerts.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "decoded as audio")).firstMatch.exists)
         app.alerts.buttons["OK"].tap()
         pick.tap()
         choose("EAR Import Check")
