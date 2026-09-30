@@ -100,6 +100,11 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/Smoke.xcresult -skip-testing:EARUITests/SmokeTests/testFilePickerCancelReopenInvalidAndImport -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 240 CODE_SIGNING_ALLOWED=NO test-without-building 2>&1 | tee build/smoke.log
+      - name: Collect import and playback diagnostics
+        if: always()
+        run: |
+          mkdir -p build
+          python3 scripts/bounded.py xcrun simctl spawn "$EAR_SIM" log show --last 20m --style compact --predicate 'subsystem == "com.aeon.ear"' > build/runtime-diagnostics.log 2>&1 || true
       - name: Collect screenshots
         if: always()
         run: |

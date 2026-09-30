@@ -9,8 +9,10 @@ struct AudioFilePicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // Some providers label valid audio as generic data. Decode the selection to validate it.
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
+        // Audio and generic provider data are distinct filters; explicitly accept both.
+        // Decode the selection to validate it instead of trusting its extension.
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.audio, .data], asCopy: true)
+        earTrace("File picker created")
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
@@ -19,6 +21,9 @@ struct AudioFilePicker: UIViewControllerRepresentable {
             let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let fixture = folder.appendingPathComponent("EAR Import Check.caf")
             if !FileManager.default.fileExists(atPath: fixture.path) { try? AudioFiles.demo(at: fixture) }
+            if let type = try? fixture.resourceValues(forKeys: [.contentTypeKey]).contentType {
+                earTrace("Fixture type=\(type.identifier); audio=\(type.conforms(to: .audio)); data=\(type.conforms(to: .data))")
+            }
             try? Data("Not an audio recording".utf8).write(to: folder.appendingPathComponent("EAR Invalid Check.txt"))
             picker.directoryURL = folder
         }
@@ -32,6 +37,7 @@ struct AudioFilePicker: UIViewControllerRepresentable {
         private var completion: ((URL?) -> Void)?
         init(completion: @escaping (URL?) -> Void) { self.completion = completion }
         private func finish(_ url: URL?) {
+            earTrace("File picker returned selection=\(url != nil); callback=\(completion != nil)")
             let callback = completion; completion = nil
             callback?(url)
         }

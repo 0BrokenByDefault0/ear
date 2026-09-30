@@ -9,19 +9,19 @@ import AVFoundation
         WindowGroup {
             RootView().environment(store).preferredColorScheme(.dark).tint(Ink.accent)
                 .onChange(of: phase) { _, value in
-                    if value == .background { store.suspendAudio() }
+                    if value == .background { store.suspendAudio(reason: "background") }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { note in
                     if let type = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-                       type == AVAudioSession.InterruptionType.began.rawValue { store.suspendAudio() }
+                       type == AVAudioSession.InterruptionType.began.rawValue { store.suspendAudio(reason: "interruption") }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.mediaServicesWereResetNotification)) { _ in
-                    store.suspendAudio()
+                    store.suspendAudio(reason: "media services reset")
                     if let study = store.current { store.open(study) }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)) { note in
                     if let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio() }
+                       reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio(reason: "output disconnected") }
                 }
         }
     }
