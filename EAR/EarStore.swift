@@ -53,6 +53,16 @@ func earTrace(_ event: String) {
             studies = saved.studies
             if saved.recovered { error = "EAR recovered your notebook from its last good save. Your audio files are unchanged; the most recent edit may need to be repeated." }
         } catch { self.error = "Could not open your notebook. Your saved files have been preserved. \(error.localizedDescription)"; loadFailed = true }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--import-ui-check") {
+            do {
+                let documents = folder.deletingLastPathComponent()
+                let fixture = documents.appendingPathComponent("EAR Import Check.caf")
+                if !FileManager.default.fileExists(atPath: fixture.path) { try AudioFiles.demo(at: fixture) }
+                try Data("Not an audio recording".utf8).write(to: documents.appendingPathComponent("EAR Invalid Check.txt"))
+            } catch { self.error = "Could not prepare import test files. \(error.localizedDescription)" }
+        }
+        #endif
         timer = Task { [weak self] in
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { return }

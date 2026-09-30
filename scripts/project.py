@@ -6,7 +6,7 @@ def uid(s): return hashlib.sha1(s.encode()).hexdigest()[:24].upper()
 objects=[]
 def obj(key,body): objects.append(f'{uid(key)} = {{ {body} }};'); return uid(key)
 def array(items): return '('+', '.join(items)+',)'
-swift=['AudioAnalyzer.swift', 'AudioFilePicker.swift', 'AudioFiles.swift', 'Design.swift', 'EarApp.swift', 'EarStore.swift', 'Experiments.swift', 'KnowledgeViews.swift', 'Models.swift', 'NotebookFiles.swift', 'ProductionKnowledge.swift', 'StudyViews.swift']
+swift=['AudioAnalyzer.swift', 'AudioFiles.swift', 'Design.swift', 'EarApp.swift', 'EarStore.swift', 'Experiments.swift', 'KnowledgeViews.swift', 'Models.swift', 'NotebookFiles.swift', 'ProductionKnowledge.swift', 'StudyViews.swift']
 resources=['Assets.xcassets','PrivacyInfo.xcprivacy','AeonNocturne-Regular.otf','GUST-FONT-LICENSE.txt','LPPL-1.3c.tex','README-Aeon-Nocturne.txt']
 fileids=[]; sourcebuild=[]; resourcebuild=[]
 for f in swift+resources:

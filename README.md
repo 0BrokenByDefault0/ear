@@ -4,7 +4,7 @@ A native iOS 26+ listening instrument in the Aeon family. Import a song, investi
 
 ## Included
 
-- One coordinated modal presenter for Files, settings and study results. The native picker opens a security-scoped selection; EAR makes one coordinated private copy before analysis. It accepts audio and provider files tagged as generic data, then validates their audio content. The selection callback stays active across reopening. Invalid audio gets a clear error and leaves the notebook unchanged.
+- SwiftUI's native file importer owns Files presentation, dismissal and the selection callback. Settings and study results share a separate sheet presenter. EAR holds the selection's security-scoped access while making one coordinated private copy before analysis. It accepts audio and provider files tagged as generic data, then validates their audio content. Invalid audio gets a clear error and leaves the notebook unchanged.
 - Security-scoped Files import and Open in EAR for unprotected audio supported by AVFoundation (WAV, AIFF, CAF, MP3, M4A/AAC and compatible FLAC).
 - On-device microphone capture, limited to 30 seconds; the room and speaker affect those results.
 - Streaming audio analysis with bounded PCM memory, cancellation, meaningful errors, 3-second/15-minute duration limits, stereo/mono validation, and a 500 MB import limit.

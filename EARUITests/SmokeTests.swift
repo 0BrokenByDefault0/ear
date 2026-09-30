@@ -10,13 +10,33 @@ import XCTest
         let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: state, object: app.buttons["transportPlay"])], timeout: 8)
         XCTAssertEqual(result, .completed, app.debugDescription, file: file, line: line)
     }
-    func testFilePickerCancelReopenInvalidAndImport() {
+    func openFilePicker() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--import-ui-check"]
         app.launch()
         let pick = app.buttons["importAudio"]
         XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
+        return app
+    }
+    func chooseFile(_ name: String, in app: XCUIApplication) {
+        let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
+        if app.collectionViews["File View"].value as? String == "Icon Mode" {
+            app.buttons["OverflowBarButtonItem"].tap()
+            XCTAssertTrue(app.buttons["List"].waitForExistence(timeout: 5), app.debugDescription)
+            app.buttons["List"].tap()
+        }
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: file)
+        waitForExpectations(timeout: 10)
+        file.tap()
+        let open = app.buttons["Open"]
+        if open.waitForExistence(timeout: 2) { open.tap() }
+        shot("File-selection-\(name)")
+    }
+    func testFilePickerCancelReopenInvalid() {
+        let app = openFilePicker()
+        let pick = app.buttons["importAudio"]
         let cancel = app.buttons["Cancel"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 15))
         shot("00-File-picker")
@@ -24,28 +44,17 @@ import XCTest
         expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: pick)
         waitForExpectations(timeout: 10)
         pick.tap()
-        func choose(_ name: String) {
-            let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
-            XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
-            // Use the Files row's accessibility hit point instead of a thumbnail coordinate.
-            if app.collectionViews["File View"].value as? String == "Icon Mode" {
-                app.buttons["OverflowBarButtonItem"].tap()
-                XCTAssertTrue(app.buttons["List"].waitForExistence(timeout: 5), app.debugDescription)
-                app.buttons["List"].tap()
-            }
-            expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: file)
-            waitForExpectations(timeout: 10)
-            file.tap()
-            let open = app.buttons["Open"]
-            if open.waitForExistence(timeout: 2) { open.tap() }
-            shot("File-selection-\(name)")
-        }
-        choose("EAR Invalid Check")
+        chooseFile("EAR Invalid Check", in: app)
         XCTAssertTrue(app.alerts["EAR"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.alerts.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "decoded as audio")).firstMatch.exists)
         app.alerts.buttons["OK"].tap()
         pick.tap()
-        choose("EAR Import Check")
+        XCTAssertTrue(cancel.waitForExistence(timeout: 15)); cancel.tap()
+        XCTAssertTrue(pick.waitForExistence(timeout: 10))
+    }
+    func testFilePickerImportsAudio() {
+        let app = openFilePicker()
+        chooseFile("EAR Import Check", in: app)
         XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 45), app.debugDescription)
         XCTAssertEqual(app.staticTexts["studyTitle"].label, "EAR Import Check")
         app.buttons["transportPlay"].tap()

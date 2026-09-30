@@ -28,20 +28,27 @@ import AVFoundation
 }
 
 struct RootView: View {
-    private enum Sheet: String, Identifiable { case files, study, settings; var id: String { rawValue } }
+    private enum Sheet: String, Identifiable { case study, settings; var id: String { rawValue } }
     @Environment(EarStore.self) private var store
     @State private var tab = 0
     @State private var sheet: Sheet?
+    @State private var pickingFile = false
     @State private var pendingImport: URL?
     @State private var pendingAccess = false
     private var importing: Binding<Bool> {
-        Binding(get: { sheet == .files }, set: { if $0 && store.canStartStudy { store.pause(); sheet = .files } })
+        Binding(get: { pickingFile }, set: { show in
+            if show {
+                guard store.canStartStudy, sheet == nil else { return }
+                store.pause()
+            }
+            pickingFile = show
+        })
     }
     var body: some View {
         TabView(selection: $tab) {
             Tab("Listen", systemImage: "waveform", value: 0) {
                 NavigationStack {
-                    ListenView(importing: importing, active: tab == 0 && sheet == nil)
+                    ListenView(importing: importing, active: tab == 0 && sheet == nil && !pickingFile)
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) { Text("EAR").font(.system(.subheadline, design: .monospaced)).tracking(5).foregroundStyle(Ink.primary) }
                             ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "slider.horizontal.3") { sheet = .settings }.disabled(!store.canStartStudy) }
@@ -51,12 +58,21 @@ struct RootView: View {
             Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: importing) } }
             Tab("Lab", systemImage: "sparkles", value: 2) { NavigationStack { LabView() } }
         }
+        .fileImporter(isPresented: importing, allowedContentTypes: [.audio, .data]) { result in
+            switch result {
+            case .success(let url):
+                earTrace("Native file selection received")
+                queueImport(url)
+            case .failure(let error):
+                store.error = "Could not open the selected file. \(error.localizedDescription)"
+            }
+        }
+        #if DEBUG
+        .fileDialogDefaultDirectory(ProcessInfo.processInfo.arguments.contains("--import-ui-check")
+            ? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0] : nil)
+        #endif
         .sheet(item: $sheet, onDismiss: didDismiss) { item in
             switch item {
-            case .files:
-                AudioFilePicker { url in
-                    if let url { queueImport(url) } else { sheet = nil }
-                }.ignoresSafeArea()
             case .study:
                 NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
             case .settings:
@@ -68,7 +84,7 @@ struct RootView: View {
             else if sheet == .study { sheet = nil }
         }
         .onOpenURL { url in if url.isFileURL { queueImport(url) } }
-        .modifier(EarErrorAlert(active: sheet == nil))
+        .modifier(EarErrorAlert(active: sheet == nil && !pickingFile))
         .overlay {
             if store.busy {
                 VStack(spacing: 22) {
@@ -87,7 +103,8 @@ struct RootView: View {
         if pendingAccess { pendingImport?.stopAccessingSecurityScopedResource() }
         pendingImport = url
         pendingAccess = url.startAccessingSecurityScopedResource()
-        // Wait for the picker (or an existing study) to finish dismissing before presenting results.
+        // fileImporter completes after its presentation binding resets. External Open In
+        // URLs may arrive while a study or settings sheet still needs to dismiss.
         if sheet != nil { sheet = nil; store.showStudy = false }
         else { didDismiss() }
     }
