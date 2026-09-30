@@ -65,8 +65,13 @@ import Observation
         }
         let reportProgress = begin(status: "Opening your audio file")
         let destination = folder.appendingPathComponent(UUID().uuidString).appendingPathExtension(source.pathExtension.lowercased())
+        // Acquire access before the document-picker callback returns, and hold it through the copy.
+        let access = source.startAccessingSecurityScopedResource()
         worker = Task.detached(priority: .userInitiated) {
-            defer { if removeSourceAfterImport { try? FileManager.default.removeItem(at: source) } }
+            defer {
+                if access { source.stopAccessingSecurityScopedResource() }
+                if removeSourceAfterImport { try? FileManager.default.removeItem(at: source) }
+            }
             do {
                 try AudioFiles.importCopy(source: source, destination: destination)
                 let metrics = try AudioAnalyzer.analyze(destination, progress: reportProgress)

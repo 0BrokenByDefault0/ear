@@ -5,6 +5,68 @@ import XCTest
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
+    func testFilePickerCancelReopenInvalidAndImport() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--import-ui-check"]
+        app.launch()
+        let pick = app.buttons["importAudio"]
+        XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
+        let cancel = app.buttons["Cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 15))
+        shot("00-File-picker")
+        cancel.tap()
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: pick)
+        waitForExpectations(timeout: 10)
+        pick.tap()
+        func choose(_ name: String) {
+            let file = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+            XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
+            file.tap()
+            let open = app.buttons["Open"]
+            if open.waitForExistence(timeout: 2) { open.tap() }
+        }
+        choose("EAR Invalid Check")
+        XCTAssertTrue(app.alerts["EAR"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.alerts.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "decoded as audio")).firstMatch.exists)
+        app.alerts.buttons["OK"].tap()
+        pick.tap()
+        choose("EAR Import Check")
+        XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 45))
+        XCTAssertEqual(app.staticTexts["studyTitle"].label, "EAR Import Check")
+        app.buttons["transportPlay"].tap()
+        XCTAssertEqual(app.buttons["transportPlay"].label, "Pause")
+        shot("00-Imported-audio")
+        app.buttons["closeStudy"].tap()
+        app.tabBars.buttons["Notebook"].tap()
+        XCTAssertTrue(app.staticTexts["EAR Import Check"].waitForExistence(timeout: 10))
+        app.terminate(); app.launch()
+        app.tabBars.buttons["Notebook"].tap()
+        XCTAssertTrue(app.staticTexts["EAR Import Check"].waitForExistence(timeout: 10))
+    }
+
+    func testLabSearchAndProgress() {
+        continueAfterFailure = false
+        let app = XCUIApplication(); app.launch()
+        app.tabBars.buttons["Lab"].tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10)); search.tap(); search.typeText("formant")
+        let result = app.buttons["lab.vocals.formant-shadow"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        shot("06-Lab-search")
+        result.tap()
+        XCTAssertTrue(app.staticTexts["Put a formant shadow under a word"].waitForExistence(timeout: 10))
+        let complete = app.buttons["completeExperiment"]
+        for _ in 0..<8 { if complete.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(complete.isHittable)
+        if complete.label != "Experiment tried" { complete.tap() }
+        app.terminate(); app.launch()
+        app.tabBars.buttons["Lab"].tap()
+        XCTAssertTrue(search.waitForExistence(timeout: 10)); search.tap(); search.typeText("formant")
+        XCTAssertTrue(result.waitForExistence(timeout: 10))
+        XCTAssertEqual(result.value as? String, "Tried")
+    }
+
     func testListeningJourney() {
         continueAfterFailure = false
         let app = XCUIApplication()

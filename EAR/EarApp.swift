@@ -23,47 +23,58 @@ import AVFoundation
                     if let reason = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
                        reason == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue { store.suspendAudio() }
                 }
-                .onOpenURL { url in if url.isFileURL { store.importFile(url) } }
         }
     }
 }
 
 struct RootView: View {
+    private enum Sheet: String, Identifiable { case files, study, settings; var id: String { rawValue } }
     @Environment(EarStore.self) private var store
     @State private var tab = 0
-    @State private var importing = false
-    @State private var settings = false
+    @State private var sheet: Sheet?
+    @State private var pendingImport: URL?
+    @State private var pendingAccess = false
+    @State private var pendingIsCopy = false
+    private var importing: Binding<Bool> {
+        Binding(get: { sheet == .files }, set: { if $0 && store.canStartStudy { store.pause(); sheet = .files } })
+    }
     var body: some View {
-        @Bindable var store = store
         TabView(selection: $tab) {
             Tab("Listen", systemImage: "waveform", value: 0) {
                 NavigationStack {
-                    ListenView(importing: $importing, active: tab == 0 && !store.showStudy && !settings)
+                    ListenView(importing: importing, active: tab == 0 && sheet == nil)
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) { Text("EAR").font(.system(.subheadline, design: .monospaced)).tracking(5).foregroundStyle(Ink.primary) }
-                            ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "slider.horizontal.3") { settings = true } }
+                            ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "slider.horizontal.3") { sheet = .settings }.disabled(!store.canStartStudy) }
                         }
                 }
             }
-            Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: $importing) } }
+            Tab("Notebook", systemImage: "square.stack", value: 1) { NavigationStack { NotebookView(importing: importing) } }
             Tab("Lab", systemImage: "sparkles", value: 2) { NavigationStack { LabView() } }
         }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
-            switch result {
-            case .success(let urls): if let url = urls.first { store.importFile(url) }
-            case .failure(let error): store.error = "The file could not be opened. \(error.localizedDescription)"
+        .sheet(item: $sheet, onDismiss: didDismiss) { item in
+            switch item {
+            case .files:
+                AudioFilePicker { url in
+                    if let url { queueImport(url, isPickerCopy: true) } else { sheet = nil }
+                }.ignoresSafeArea()
+            case .study:
+                NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
+            case .settings:
+                NavigationStack { SettingsView() }.presentationBackground(Ink.background)
             }
         }
-        .sheet(isPresented: $store.showStudy, onDismiss: { store.pause() }) {
-            NavigationStack { StudyView() }.environment(store).presentationBackground(Ink.background)
+        .onChange(of: store.showStudy) { _, show in
+            if show { sheet = .study }
+            else if sheet == .study { sheet = nil }
         }
-        .sheet(isPresented: $settings) { NavigationStack { SettingsView() }.presentationBackground(Ink.background) }
-        .onChange(of: store.busy) { _, busy in if busy { settings = false } }
-        .modifier(EarErrorAlert(active: !store.showStudy && !settings))
+        .onOpenURL { url in if url.isFileURL { queueImport(url) } }
+        .modifier(EarErrorAlert(active: sheet == nil))
         .overlay {
             if store.busy {
                 VStack(spacing: 22) {
-                    ProgressView(value: store.progress).tint(Ink.accent)
+                    if store.progress == 0 { ProgressView().tint(Ink.accent) }
+                    else { ProgressView(value: store.progress).tint(Ink.accent) }
                     Text(store.status).font(.headline)
                     Text("Reading rhythm, tone, space and movement.").font(.subheadline).foregroundStyle(Ink.secondary).multilineTextAlignment(.center)
                     Button("Cancel") { store.cancelAnalysis() }.buttonStyle(.glass)
@@ -71,6 +82,25 @@ struct RootView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity).background(.black.opacity(0.75)).accessibilityAddTraits(.isModal)
             }
         }
+    }
+
+    private func queueImport(_ url: URL, isPickerCopy: Bool = false) {
+        if pendingAccess { pendingImport?.stopAccessingSecurityScopedResource() }
+        if pendingIsCopy, let previous = pendingImport { try? FileManager.default.removeItem(at: previous) }
+        pendingImport = url
+        pendingIsCopy = isPickerCopy
+        pendingAccess = url.startAccessingSecurityScopedResource()
+        // Wait for the picker (or an existing study) to finish dismissing before presenting results.
+        if sheet != nil { sheet = nil; store.showStudy = false }
+        else { didDismiss() }
+    }
+
+    private func didDismiss() {
+        store.pause(); store.showStudy = false
+        guard let url = pendingImport else { return }
+        store.importFile(url, removeSourceAfterImport: pendingIsCopy)
+        if pendingAccess { url.stopAccessingSecurityScopedResource() }
+        pendingImport = nil; pendingAccess = false; pendingIsCopy = false
     }
 }
 
@@ -89,13 +119,14 @@ struct ListenView: View {
                     recordingControls
                 } else {
                     Button { importing = true } label: {
-                        HStack { Image(systemName: "plus"); Text("Bring a song").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8)
+                        HStack { Image(systemName: "plus"); Text("Pick a file").fontWeight(.semibold); Spacer(); Image(systemName: "arrow.up.doc") }.frame(minHeight: 32).padding(.horizontal, 8)
                     }.buttonStyle(.glassProminent).controlSize(.large).tint(Ink.primary).foregroundStyle(Ink.background).accessibilityIdentifier("importAudio").disabled(!store.canStartStudy)
                     HStack(spacing: 12) {
                         Button { Task { await store.startRecording() } } label: { Label(store.requestingMicrophone ? "Requesting…" : "Capture", systemImage: "mic").frame(maxWidth: .infinity, minHeight: 44) }.accessibilityIdentifier("captureAudio")
                         Button { store.demo() } label: { Label("Try a study", systemImage: "play.circle").frame(maxWidth: .infinity, minHeight: 30) }.accessibilityIdentifier("demoStudy")
                     }.buttonStyle(.glass).controlSize(.regular).padding(.top, 12).disabled(!store.canStartStudy)
-                    Text("AUDIO FILES OR A 30-SECOND CAPTURE").font(.system(size: 9, design: .monospaced)).tracking(1.4).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 17)
+                    Text("WAV · AIFF · MP3 · M4A · AAC · FLAC · CAF").font(.system(.caption2, design: .monospaced)).foregroundStyle(Ink.secondary).multilineTextAlignment(.center).frame(maxWidth: .infinity).padding(.top, 17)
+                    Text("Files, iCloud Drive or a 30-second capture").font(.caption2).foregroundStyle(Ink.secondary).frame(maxWidth: .infinity).padding(.top, 6)
                 }
                 Rule().padding(.top, 30).padding(.bottom, 22)
                 HStack(alignment: .top, spacing: 20) {
@@ -160,29 +191,6 @@ struct NotebookView: View {
     }
 }
 
-struct LabView: View {
-    @AppStorage("ear.daw") private var daw = DAW.studio.rawValue
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Eyebrow("Learn by making").padding(.top, 22)
-                Text("The listening lab.").font(Ink.display(42)).padding(.vertical, 14)
-                Text("One deliberate experiment at a time. Take these into your own session.").font(.subheadline).foregroundStyle(Ink.secondary).lineSpacing(4).padding(.bottom, 24)
-                Picker("Your DAW", selection: $daw) { ForEach(DAW.allCases) { Text($0.rawValue).tag($0.rawValue) } }.pickerStyle(.segmented).padding(.bottom, 26)
-                ForEach(Lens.allCases) { lens in
-                    Rule()
-                    NavigationLink { ExperimentView(lens: lens, studyID: nil) } label: {
-                        let experiment = Experiment.make(lens, daw: DAW(rawValue: daw) ?? .studio, tempo: nil)
-                        LensRow(lens: lens, title: experiment.title, detail: "\(experiment.minutes) MIN · \(daw.uppercased())")
-                    }.buttonStyle(.plain)
-                }
-                Rule()
-                Text("Pair this practice with Stufo’s deeper lessons. EAR’s experiments can be shared as notes; a direct Stufo handoff isn’t available in its current build.").font(.caption).foregroundStyle(Ink.secondary).lineSpacing(4).padding(.top, 24)
-            }.padding(.horizontal, 26).padding(.bottom, 28).frame(maxWidth: 700).frame(maxWidth: .infinity)
-        }.background(Ink.background).foregroundStyle(Ink.primary).navigationTitle("Lab").navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("ear.daw") private var daw = DAW.studio.rawValue
@@ -201,7 +209,7 @@ struct SettingsView: View {
                 Link("Fender Studio Pro manual", destination: URL(string: "https://s1manual.presonus.com/")!)
                 Link("Logic Pro user guide", destination: URL(string: "https://support.apple.com/guide/logicpro/welcome/mac")!)
             }
-            Section { Text("EAR 1.1 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
+            Section { Text("EAR 1.2 · An Aeon-family listening instrument").font(.caption).foregroundStyle(Ink.secondary) }
         }.scrollContentBackground(.hidden).background(Ink.background).navigationTitle("Your studio").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .modifier(EarErrorAlert())

@@ -32,18 +32,18 @@ jobs:
           info=plistlib.load(open(app+'/Info.plist','rb'))
           assert info['MinimumOSVersion']=='26.0'
           assert info['CFBundleIdentifier']=='com.aeon.ear'
-          assert info['CFBundleShortVersionString']=='1.1'
+          assert info['CFBundleShortVersionString']=='1.2'
           json.dump({'commit':os.environ['GITHUB_SHA'],'run':os.environ['GITHUB_RUN_NUMBER'],'unsigned':True},open(app+'/BuildManifest.json','w'),indent=2)
           PY
           cd build/package
-          zip -q -r ../EAR-1.1-unsigned.ipa Payload
+          zip -q -r ../EAR-1.2-unsigned.ipa Payload
           cd ..
-          shasum -a 256 EAR-1.1-unsigned.ipa > SHA256.txt
+          shasum -a 256 EAR-1.2-unsigned.ipa > SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
           name: EAR-unsigned-IPA
           path: |
-            build/EAR-1.1-unsigned.ipa
+            build/EAR-1.2-unsigned.ipa
             build/SHA256.txt
           if-no-files-found: error
           retention-days: 30
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          python3 scripts/bounded.py xcrun swiftc -swift-version 6 EAR/Models.swift EAR/AudioAnalyzer.swift EAR/AudioFiles.swift EAR/NotebookFiles.swift EAR/Experiments.swift scripts/AudioCheck.swift -o build/audio-check 2>&1 | tee build/audio-compile.log
+          python3 scripts/bounded.py xcrun swiftc -swift-version 6 EAR/Models.swift EAR/AudioAnalyzer.swift EAR/AudioFiles.swift EAR/NotebookFiles.swift EAR/Experiments.swift EAR/ProductionKnowledge.swift scripts/AudioCheck.swift -o build/audio-check 2>&1 | tee build/audio-compile.log
       - name: Check analysis, imports, cancellation and notebook recovery
         run: |
           set -o pipefail
@@ -77,7 +77,7 @@ jobs:
           retention-days: 14
   ui:
     needs: audio
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4

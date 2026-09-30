@@ -1,0 +1,251 @@
+import Foundation
+
+struct ProductionGuide {
+    var principle: String
+    var cues: [String]
+    var trap: String
+
+    static func make(_ lens: Lens) -> ProductionGuide {
+        switch lens {
+        case .drums:
+            ProductionGuide(principle: "A hit has an onset, body and decay. Groove depends on those envelopes as well as the grid: a slow sample attack can feel late even when its region starts on time.", cues: ["Follow the kick and snare first. Then hear whether hats lean ahead, sit on the pulse or answer behind it.", "At low volume, compare the front of each hit with its ringing body. A sharp click is different from low-frequency weight.", "At a fill, listen for softer intermediate hits and changes in articulation; those can create motion without extra notes."], trap: "A transient counter also hears plucks and consonants. It cannot identify the drum kit or prove compression. Randomizing every note usually weakens a deliberate pocket.")
+        case .vocals:
+            ProductionGuide(principle: "A lead can feel intimate through performance, stable level and a clear dry center. Doubles add independent articulation; delay and chorus create different kinds of motion.", cues: ["Follow breaths and consonants at the edges. Different timing can suggest independent takes, but a stereo mix cannot prove their number.", "Listen to words before and after processing tails. A blurred lyric may need less support, a level ride or cleaner edits before more EQ.", "Separate sibilance (short s, sh and t sounds) from sustained harsh vowels. They call for different processing."], trap: "An identical copy panned left and right remains the same performance. Mid/side is sum/difference information, not a vocal separator. Fast pitch correction cannot fix the wrong target notes.")
+        case .delay:
+            ProductionGuide(principle: "Delay timing sets when an answer appears; feedback sets how long it repeats. Automating the send chooses which word enters. Automating the return changes every repeat already sounding.", cues: ["Find an exposed phrase ending and count from the original to the first clear repeat.", "Listen for repeats that lose high frequencies, change pitch, or alternate sides. Those are useful design choices to audition, not identified plugins.", "Notice whether the next lyric is clear. A successful throw often occupies a gap rather than running constantly."], trap: "A tempo-derived delay time is not a detected echo. A wet return should contain only the effect; dry leakage can change level and phase. Keep feedback modest while learning.")
+        case .space:
+            ProductionGuide(principle: "Depth comes from direct sound, early reflections, tail, tone and level together. Predelay separates the direct event from reverberation; decay determines how long the space persists.", cues: ["Use an exposed stop to hear the tail without another note masking it.", "Compare a near, dry element with a distant one. Darker tone and softer attacks can suggest distance as strongly as tail length.", "Hear whether ambience ducks during phrases and blooms afterward, or simply stays quiet all the time."], trap: "EAR’s falling-energy windows are not RT60 measurements. Pads and sustained notes can imitate tails. More reverb can make a sound less defined rather than bigger.")
+        case .stereo:
+            ProductionGuide(principle: "Width is a relationship between center and edges. Independent performances, panning and decorrelated effects can create it; mono summation reveals what depends on left/right differences.", cues: ["Locate a stable anchor, then follow one side layer through a section change.", "Compare stereo and mono at a comfortable, similar listening level. Decide whether disappearing detail matters musically.", "Distinguish panning (position) from widening (changing channel relationships). A sound can sit left and still be narrow."], trap: "A positive correlation reading does not guarantee every frequency is safe in mono. Short interchannel delay can make width and comb filtering at the same time. Side is not an isolated ambience stem.")
+        case .arrangement:
+            ProductionGuide(principle: "A section feels different when density, register, rhythm, space or performance changes. Contrast before an entrance can create impact without raising the master.", cues: ["Name each part’s job: pulse, bass, harmony, lead or response. Notice unnecessary duplicates.", "At a transition, identify what disappears before identifying what arrives.", "Follow a recurring motif. Does its register, ending, timbre or surrounding space change when it returns?"], trap: "Energy windows do not identify verses or choruses. A louder section is not automatically more exciting. Preserve one timing cue when experimenting with silence.")
+        case .bass:
+            ProductionGuide(principle: "Kick and bass share time and frequency space. Note length, register and envelope often solve their collision before EQ or sidechain compression is needed.", cues: ["Listen to the kick’s attack separately from its tail, and to the settled pitch of an 808 rather than only its initial pitch sweep.", "On a small speaker, hear whether upper harmonics still describe the bass melody when the fundamental is hard to reproduce.", "Check whether low notes overlap intentionally, and whether the bass recovers naturally after the kick."], trap: "Low-band energy cannot isolate kick from bass or establish sidechaining. Unrelated high-pass and low-pass filters do not guarantee a complementary crossover. Tune by sustained pitch and harmony, not a single transient.")
+        case .dynamics:
+            ProductionGuide(principle: "Clip gain changes what enters a processor; compression changes level according to its detector and envelope; final automation places phrases in the finished balance. Each has a different job.", cues: ["Listen for a loud hit pulling other sounds down, then hear how they recover.", "Compare bypass at similar perceived loudness. Density and punch are easier to judge when extra output gain cannot win the comparison.", "Find a single word or hit that misbehaves. A local edit may preserve expression better than stronger compression across the whole track."], trap: "Crest factor describes peak-to-average level, not a compressor setting. RMS is not LUFS and sample peak is not true peak. Release need not equal a note value; recovery must suit the source.")
+        case .texture:
+            ProductionGuide(principle: "Texture can come from nonlinear distortion, bandwidth, modulation, editing or the recording itself. One controlled layer can add identity while the dry source carries intelligibility.", cues: ["Hear whether grain rises with note level, remains as constant noise, or moves independently.", "Compare attacks with sustained tails. A dirty tail behind a clean transient can feel textured without losing definition.", "Follow a small repeated gesture: a pitched breath, resampled vowel or altered repeat can become a song’s signature."], trap: "Brightness does not prove saturation, and near-full-scale samples do not prove clipping. Oversampling is a CPU/latency tradeoff rather than an automatic improvement. A rendered experiment should preserve the original and its tails.")
+        }
+    }
+}
+
+extension Experiment {
+    static func catalog(_ lens: Lens, daw: DAW, tempo: Double?) -> [Experiment] {
+        let channel = daw == .studio ? "FX Channel" : "aux channel"
+        let route = daw == .studio
+            ? "In the Console, create an FX Channel and add a post-fader send to it from the source. Keep the source routed to Main."
+            : "On the source channel strip, choose an unused bus in a Send slot. Use its aux as the return and choose Post Fader or Post Pan for the send. Keep the source routed to Stereo Out."
+        let key = daw == .studio
+            ? "Enable the compressor’s external sidechain, then send the dry vocal to that sidechain input."
+            : "Choose the dry vocal track or its bus from Compressor’s Side Chain menu."
+        let bpm = tempo.flatMap { $0.isFinite && (40...240).contains($0) ? $0 : nil }
+        let eighth = bpm.map { "At \(decimal($0, 0)) BPM, an eighth is \(decimal(30000 / $0, 0)) ms." }
+            ?? "Set the session tempo first; use a synced eighth note as the starting offset."
+        let extras: [Experiment]
+        switch lens {
+        case .drums:
+            extras = [
+                Experiment(lens: lens, title: "Build a pocket with ghost notes", purpose: "Create motion through quiet intermediate hits while keeping a stable rhythmic anchor.", minutes: 8, steps: [
+                    "Loop two bars of your own MIDI drums. Leave the main kick and backbeat where they are and save a pattern variation.",
+                    "Add one or two snare ghost notes between main hits. Start noticeably quieter, around half the main MIDI velocity; velocity may also change the sample timbre.",
+                    "Move only the ghost notes a little behind the grid, auditioning about 5–15 ms. Compare their relationship to the vocal and hats rather than randomizing the whole pattern.",
+                    "Remove any ghost note that competes with a syllable or makes the main snare feel weak. Shorten its sample tail if two hits smear together."
+                ], check: "Switch between the two patterns at the same bus level. Keep the variation only if the vocal feels more comfortable in the pocket.", key: "drums.ghost-notes"),
+                Experiment(lens: lens, title: "Keep the snap, lift the body", purpose: "Explore parallel compression without crushing the direct drum attacks.", minutes: 7, steps: [
+                    route + " Feed it from your drum bus and name the return Drum Body.",
+                    "Insert a compressor on the return, fully processed with automatic makeup off. Try 4:1, 5 ms attack and 100 ms release, then lower threshold until the body is clearly denser.",
+                    "Start the return fader down and blend quietly beneath the dry drums. Listen for a stronger room or sustain while the dry path keeps its attack.",
+                    "Match the combined loudness to the original for comparison. If cymbal hiss dominates, lower the return or filter it gently; if the hits become hollow, check parallel timing and processing."
+                ], check: "The groove should retain its snap at quiet volume. Remove the parallel layer if it only raises loudness or noise.", key: "drums.parallel-body"),
+                Experiment(lens: lens, title: "Choose a kick by its tail", purpose: "Make kick and bass fit through sound selection and envelope length.", minutes: 6, steps: [
+                    "Loop a kick with the actual bass phrase, leaving the rest of the arrangement available for context.",
+                    "Compare two kick samples at similar perceived level. Listen separately for initial click, low body and decay; do not choose from solo loudness alone.",
+                    "On a copy, shorten the kick’s amplitude decay until it clears the next bass event. Keep a short fade so the edit does not click.",
+                    "Restore part of the tail if the kick becomes tiny. If the bass groove is already right, change the kick sample rather than forcing both sounds to sustain in the same space."
+                ], check: "The kick stays recognizable on its own, and the bass melody becomes clearer in context without a large EQ boost.", key: "drums.kick-tail")
+            ]
+        case .vocals:
+            extras = [
+                Experiment(lens: lens, title: "Ride the words before compression", purpose: "Keep a conversational vocal intelligible without flattening its expression.", minutes: 10, steps: [
+                    "Work on a duplicate playlist or editable copy of the dry lead. Listen against the beat at a quiet, repeatable monitoring level.",
+                    "Use event/region gain for isolated words that jump out or disappear. Start with changes around 1–3 dB, keeping intentional accents and phrase shape.",
+                    "Add short fades at edit boundaries and keep breaths that belong to the performance. Avoid gating every gap; abrupt silence can expose the edits.",
+                    "Feed the balanced result into gentle compression if needed. Set threshold from the actual gain reduction, then use final fader automation for a few words that still need placement."
+                ], check: "The quiet words should read clearly while important accents still feel important. Bypass the edits at comparable loudness and undo rides that sound unnatural.", key: "vocals.word-rides"),
+                Experiment(lens: lens, title: "Tame the s, keep the air", purpose: "Separate brief sibilants from the brightness that makes a lead feel alive.", minutes: 7, steps: [
+                    "Loop a phrase containing both sharp s sounds and open vowels. Insert a stock de-esser or a dynamic EQ on the lead.",
+                    "Audition the detector band to locate the actual sibilance; roughly 4–10 kHz is a search area, not a fixed target. Stop audition mode before judging the mix.",
+                    "Lower threshold until only the offending consonants reduce. Begin with a few dB, listening for a natural s rather than a lisp.",
+                    "Recheck after any bright EQ or saturation. If just one consonant still jumps out, use local clip gain instead of increasing de-essing on the whole vocal."
+                ], check: "Vowels retain air and consonants remain understandable. If the lead becomes dull throughout, reduce depth or narrow what triggers the process.", key: "vocals.de-essing"),
+                Experiment(lens: lens, title: "Put a formant shadow under a word", purpose: "Give a few syllables another character while keeping a clear lead.", minutes: 9, steps: [
+                    "Copy a sustained vowel or phrase ending to a separate support track. Leave the lead untouched and fade the copied boundaries.",
+                    "Use a pitch/formant processor if available. Try a small formant shift with pitch stable; a stock octave-down pitch shift is a different, simpler alternative.",
+                    "Start the support around 15 dB below the lead. Remove unnecessary low rumble and redundant consonants so it feels like a shadow rather than a second person talking.",
+                    "Automate the support out before the next line. Print a copy if the effect is useful, retaining the original editable source."
+                ], check: "Listen in mono and with the beat. Keep the gesture if the lyric stays clear and the chosen word gains personality; lower or remove it if it distracts.", key: "vocals.formant-shadow")
+            ]
+        case .delay:
+            extras = [
+                Experiment(lens: lens, title: "Make the repeats wait for the lyric", purpose: "Duck a delay while the lead speaks, then let the answer rise into the gap.", minutes: 9, steps: [
+                    route + " Put a delay on the " + channel + " with wet output at 100% and feedback around 15–25%.",
+                    eighth + " Choose an exposed phrase ending to test, and keep the return quiet at first.",
+                    "Place a compressor after the delay. " + key + " Start with a fast attack and roughly 150–300 ms release; lower threshold for a few dB of ducking during words.",
+                    "Listen for the tail to recover between phrases. Shorten release if it never blooms; lengthen it or reduce compression if each syllable makes the return chatter."
+                ], check: "The sidechain must trigger the meter without adding a second audible dry vocal. Compare with the compressor bypassed and keep the version with clearer words.", key: "delay.ducked"),
+                Experiment(lens: lens, title: "A slap behind a dry lead", purpose: "Add a close, short reflection without a long rhythmic tail.", minutes: 5, steps: [
+                    route + " Insert a delay on the return, fully wet with feedback at zero.",
+                    "Try a single 80–120 ms repeat as an audition start. Keep it centered or only slightly offset and bring it up from silence.",
+                    "Filter unnecessary lows and some high end on the return. Listen for depth behind the lead rather than a clearly competing second phrase.",
+                    "Check an especially fast lyric. If the slap obscures it, lower the return, choose a shorter time, or automate the send only on slower endings."
+                ], check: "Mute the effect at similar overall loudness. Keep it if you miss the dimension more than you notice an echo; check mono before committing.", key: "delay.slap"),
+                Experiment(lens: lens, title: "Compose three different echoes", purpose: "Turn one phrase ending into a small arrangement rather than an endless repeat.", minutes: 10, steps: [
+                    "Copy one word onto a separate track in your own session. Keep the original in place and add fades to the copied event.",
+                    eighth + " Place three copies at successive eighth-note offsets and lower each repeat, trying about 3 dB less per repeat.",
+                    "Give each repeat one deliberate change: a darker filter, a small pitch change or a different pan position. Use the same motif when this gesture returns later.",
+                    "Trim or move the final echo before the next lyric. These are edited copies, so there is no feedback loop to manage."
+                ], check: "The echoes should sound like a response with a beginning and ending. Simplify if their pitch or timing distracts from the meaning of the line.", key: "delay.composed-echoes")
+            ]
+        case .space:
+            extras = [
+                Experiment(lens: lens, title: "Let the room bloom between words", purpose: "Use vocal-triggered ducking for a large tail and a readable dry lead.", minutes: 9, steps: [
+                    route + " Put a reverb on the return with wet output at 100%; start with about 1.5–2 seconds of decay and a modest send.",
+                    "Insert a compressor after the reverb. " + key,
+                    "Start with fast attack and 150–350 ms release. Lower threshold for a few dB of reduction while the vocal is active; the tail should rise when the vocal stops.",
+                    "If the next line disappears into the tail, shorten the decay or lower the send before increasing ducking. If the space pulses unnaturally, ease the reduction and slow recovery."
+                ], check: "Compare dry, ordinary reverb and ducked reverb at similar perceived levels. Choose the least processing that preserves both the lyric and the intended space.", key: "space.ducked-bloom"),
+                Experiment(lens: lens, title: "Reverse a breath into the hook", purpose: "Create anticipation from the singer’s own sound.", minutes: 10, steps: [
+                    "Copy a vowel or short word from the approaching hook to a spare track; keep the original vocal untouched.",
+                    "Reverse that copy, render it through fully wet reverb, and include the entire tail. Reverse the rendered audio again.",
+                    "Place the resulting swell so its crescendo leads into the original word. Adjust the actual rendered endpoint by ear rather than assuming the file retained its starting length.",
+                    "Add fades and lower the swell until it guides the entrance. Shorten it or move it earlier if it masks the first consonant."
+                ], check: "The original hook should still land clearly. Compare with the swell muted; retain it only if the entrance feels intentional rather than merely busier.", key: "space.reverse-swell"),
+                Experiment(lens: lens, title: "Send the vowel, spare the hiss", purpose: "Get generous vocal space without a reverb tail full of sharp consonants.", minutes: 8, steps: [
+                    "Make a separate copy of the lead solely to feed ambience. Keep it out of the dry mix, routing its output only through a fully wet reverb path.",
+                    "Before the reverb, reduce the copied s and sh sounds with clip gain or a de-esser. Keep the original dry lead unchanged.",
+                    "Blend the resulting wet signal quietly with the lead. Compare the tail after a sibilant word and after an open vowel.",
+                    "If the ambience becomes too detached, restore some consonant feed. If the dry lead changes, inspect the routing: you should be editing only the wet feed."
+                ], check: "Mute the wet path to confirm there is still only one dry lead. The large tail should retain tone without repeatedly emphasizing hiss.", key: "space.vowel-feed")
+            ]
+        case .stereo:
+            extras = [
+                Experiment(lens: lens, title: "Find what disappears in mono", purpose: "Use mono as a musical decision tool rather than chasing a perfect meter reading.", minutes: 5, steps: [
+                    "Put a mono-summing utility on your monitoring path or use the DAW’s mono monitor control. Avoid printing it into the export accidentally.",
+                    "Switch a busy section between stereo and mono at a comfortable, comparable level. Note which essential parts shrink, not just the overall change in size.",
+                    "On your own tracks, bypass widening or short-delay effects one at a time to locate the important loss. Do not treat a polarity flip as a universal repair.",
+                    "Lower the suspect effect, change its delay, or replace it with an independent performance. Check again in stereo so the cure still supports the song."
+                ], check: "The melody, lyric and rhythm should remain understandable in mono. Some decorative ambience can shrink without needing correction.", key: "stereo.mono-check"),
+                Experiment(lens: lens, title: "Open the edges at the hook", purpose: "Build width through arrangement contrast while a stable center carries the song.", minutes: 8, steps: [
+                    "Choose two genuinely different support performances or complementary textures. Keep the main lead and bass centered as an initial arrangement choice.",
+                    "Pan the supports moderately apart in the verse and farther apart at the hook. If your panner changes perceived level, compensate by listening.",
+                    "Automate their entrance and exit around the lead’s gaps. Try removing one support in the verse rather than applying a widening plugin to everything.",
+                    "Check the transition in mono and on a small speaker. Lower the supports if the hook becomes crowded instead of spacious."
+                ], check: "The hook should open up without the center getting weaker. Compare at the same master level and preserve the lyric’s position.", key: "stereo.hook-edges"),
+                Experiment(lens: lens, title: "Fragile edges, solid center", purpose: "Audition subtle detuned delay width as an effect with an explicit mono check.", minutes: 8, steps: [
+                    route + " Keep the dry source centered. On the wet path, create two pitch/delay voices panned apart.",
+                    "Try different delays around 12–25 ms and small detuning around −5 and +5 cents. Set feedback to zero and keep the effect fully wet.",
+                    "Remove unnecessary low-frequency content from the effect and blend it very quietly. It should surround the lead rather than replace its stable center.",
+                    "Sum to mono. If the tone turns hollow, lower the return, alter the delays or use real double performances instead. These settings do not guarantee mono compatibility."
+                ], check: "The effect should add a gentle edge in stereo while the dry lead stays usable in mono. Reject it if the tonal loss is worse than the added width.", key: "stereo.detuned-edges")
+            ]
+        case .arrangement:
+            extras = [
+                Experiment(lens: lens, title: "Answer the vocal in its gaps", purpose: "Make instruments and ad-libs converse instead of competing for attention.", minutes: 10, steps: [
+                    "Loop four or eight bars with a lead vocal. Mark the actual gaps between its important phrases.",
+                    "Write a short instrument or ad-lib response inside one gap. Start with one recognizable rhythm rather than a new phrase in every opening.",
+                    "Remove response notes that overlap a key word. Try a different octave or shorter envelope before reaching for deep EQ cuts.",
+                    "Repeat the response later with just one change: its last note, tone or rhythm. Leave at least one gap empty so the dialogue can breathe."
+                ], check: "At low volume, you should follow the lyric and then notice the reply. If both compete continuously, shorten or remove the answer.", key: "arrangement.call-response"),
+                Experiment(lens: lens, title: "Give one motif three lives", purpose: "Develop a short idea across the song without filling every section with new layers.", minutes: 12, steps: [
+                    "Pick a two- to four-note motif or a short rhythmic sample that already belongs to the song. Save an unprocessed copy.",
+                    "Use a sparse version in the first section: fewer notes, a lower register or a shorter tail. Keep its identifying rhythm audible.",
+                    "At a return, change only one main dimension, such as raising its register or adding a response. In a breakdown, try the same motif as a filtered or resampled texture.",
+                    "Listen to the entire arrangement without stopping. Remove a variation if it sounds unrelated or distracts from the emotional foreground."
+                ], check: "You should recognize the idea even as its role changes. The development should remain audible without making every section louder.", key: "arrangement.motif"),
+                Experiment(lens: lens, title: "Make room by changing register", purpose: "Solve a busy midrange through voicing and sound choice before corrective processing.", minutes: 7, steps: [
+                    "Identify the lead, bass and chord parts in a crowded passage. Temporarily bypass optional tone processing so you can judge the arrangement.",
+                    "Try moving a chord voice up an octave or removing a doubled root when the bass already supplies it. Preserve notes that define the intended harmony.",
+                    "Shorten a competing instrument’s release or leave rests under important syllables. Compare that with reducing its level.",
+                    "Bring processing back one stage at a time. Keep only the stages still solving an audible problem after the arrangement change."
+                ], check: "The lyric or melody should become clearer without the accompaniment feeling hollow. Restore the original voicing if the harmonic character disappears.", key: "arrangement.register")
+            ]
+        case .bass:
+            extras = [
+                Experiment(lens: lens, title: "Make an 808 speak on small speakers", purpose: "Add audible upper harmonics while preserving a clean low foundation.", minutes: 8, steps: [
+                    route + " Send the bass to a parallel saturation path while keeping its original audible.",
+                    "Apply modest distortion on the return, followed by a high-pass filter to reduce its new low-frequency content. Do not assume this creates a perfectly complementary crossover.",
+                    "Start the return down, then blend while listening on a small speaker at a modest level. Stop when the melody becomes readable without obvious fuzz.",
+                    "Return to full-range monitoring and mono. If the bass gets smaller, check timing and filter interaction; if it gets muddy, reduce the return before adding more processing."
+                ], check: "The note pattern should translate better while the original sub remains steady. Match overall loudness and reject harshness that only seems exciting in solo.", key: "bass.harmonics"),
+                Experiment(lens: lens, title: "Tune the tail, shape the glide", purpose: "Make a tonal 808 support the harmony and articulate intentional slides.", minutes: 10, steps: [
+                    "Use your own 808 source in a sampler. Listen to the sustained tail with a tuner or a known reference note; the initial pitch sweep may not have a single stable pitch.",
+                    "Set the sampler’s root mapping from the settled note, then audition against the actual bass movement and chords. Include intentional borrowed notes rather than forcing a guessed scale.",
+                    "Choose mono/legato behavior only if that is the intended phrase. Test whether overlapping MIDI notes trigger the glide, and adjust overlap and glide time by ear.",
+                    "Shorten note releases where successive bass notes collide. Keep overlap where the slide is musical, and check the low end with the kick before committing."
+                ], check: "The settled pitches fit the harmony and the slide reaches its destination in time. If notes smear, simplify overlap before increasing compression.", key: "bass.tune-glide"),
+                Experiment(lens: lens, title: "Separate kick and bass without ducking", purpose: "Use envelopes and note lengths to make space before adding a sidechain.", minutes: 6, steps: [
+                    "Loop a kick and bass phrase on separate tracks. Compare their note starts, sustain and releases.",
+                    "On a pattern copy, shorten the bass note ending just before a key kick, or move a bass onset slightly after the kick where the groove permits.",
+                    "Try a shorter kick sample if the kick tail occupies the same space as the bass. Preserve a clear rhythmic anchor; do not move every note.",
+                    "Bring the whole arrangement back. If a collision remains only at one hit, use a small local gain dip before applying compression to the entire bass line."
+                ], check: "Both parts should be easier to follow with their tone intact. Keep the original timing if the edit makes the pocket less convincing.", key: "bass.envelope-space")
+            ]
+        case .dynamics:
+            extras = [
+                Experiment(lens: lens, title: "Use two small stages, if needed", purpose: "Separate occasional peak control from slower phrase leveling.", minutes: 9, steps: [
+                    "Balance a vocal or instrument with clip gain first. Keep a bypassable copy of the current processing for comparison.",
+                    "If isolated peaks still leap out, use a relatively fast compressor as a peak catcher. Lower threshold only enough to catch those moments, beginning around 1–3 dB of reduction.",
+                    "Add a slower, gentler leveler only if the phrases still need stability. Try 2:1 and tune attack/release while listening; there is no required amount of combined reduction.",
+                    "Match output and bypass each stage independently. Remove a stage that solves nothing or makes consonants, transients or breathing less natural."
+                ], check: "Compare the full phrase at matched loudness. Two stages earn their place only if each solves a different audible problem better than one.", key: "dynamics.two-stages"),
+                Experiment(lens: lens, title: "Stop the bass from steering the bus", purpose: "Learn the difference between detector filtering and EQ on the audible mix.", minutes: 7, steps: [
+                    "Loop a bus where low hits cause unwanted broad pumping. First check whether the kick or bass is simply too loud.",
+                    "If the balance is intentional, use a compressor with a sidechain detector high-pass filter. Leave the audible signal path unchanged while you audition the detector filter.",
+                    "Start the detector cutoff low and raise it gradually, perhaps through 60–150 Hz. Watch whether low hits trigger less reduction while listening for a steadier bus.",
+                    "Readjust threshold if necessary and match output to bypass. Too much detector filtering can let low peaks through without useful control; inspect the actual result."
+                ], check: "The bass tone should remain present while unwanted whole-bus dipping decreases. A detector filter is not the same as high-passing the audible bass.", key: "dynamics.detector-filter"),
+                Experiment(lens: lens, title: "Compare fairly before you commit", purpose: "Avoid choosing processing solely because its output is louder.", minutes: 5, steps: [
+                    "Choose a representative busy passage and one sparse passage. Keep your monitoring volume fixed and comfortable.",
+                    "Disable automatic makeup where possible. Adjust the processed output so bypass has a similar perceived level; a meter can assist but does not replace listening.",
+                    "Switch while focusing on one question: word clarity, transient shape, depth or groove. Take short breaks so repeated loops do not normalize an unwanted change.",
+                    "Check a quiet monitor level and a small speaker. For delivery loudness use a suitable LUFS/true-peak meter; EAR’s RMS/sample-peak values are different measurements."
+                ], check: "Keep processing only when you can name the useful change at comparable level. Undo it if the preference disappears after gain matching.", key: "dynamics.level-match")
+            ]
+        case .texture:
+            extras = [
+                Experiment(lens: lens, title: "Build a choir from one vowel", purpose: "Make a harmonic texture that shares the singer’s identity.", minutes: 12, steps: [
+                    "Copy a stable vowel from your own performance into a sampler. Preserve the original recording and trim away unnecessary consonants.",
+                    "Find a smooth sustain loop and use crossfades if available. Start with a gentle attack and release; buzzing usually calls for a better loop boundary.",
+                    "Play a restrained chord voicing that fits the song. Use small differences in timing or tone across voices instead of stacking identical full-level copies.",
+                    "Keep the choir behind the lead and automate it into gaps. If the midrange gets crowded, simplify the voicing or shorten the release before adding more effects."
+                ], check: "The texture should feel related to the voice while leaving the lyric readable. Print a useful phrase and keep its editable sampler source.", key: "texture.vowel-choir"),
+                Experiment(lens: lens, title: "Turn a reverb tail into an instrument", purpose: "Resample ambience into a playable, rhythmically controlled motif.", minutes: 10, steps: [
+                    "Render a copy of a vocal or instrument through fully wet reverb with the complete tail. Keep the clean source and note where the render starts.",
+                    "Pick an interesting tail segment and load it into a sampler. Add a new amplitude envelope so the original long wash becomes a short playable sound.",
+                    "Write a simple response in the gaps of the lead. Changing ordinary sample playback speed changes pitch and duration together; use a time-stretch mode only if you want to separate them.",
+                    "Print a short phrase and inspect the start and tail. Shorten release or remove notes if it washes across the groove."
+                ], check: "The motif should add a recognizable connection to the source, not constant haze. Compare with it muted and keep the simplest useful phrase.", key: "texture.tail-instrument"),
+                Experiment(lens: lens, title: "A damaged memory behind a clean sound", purpose: "Use bandwidth and resampling for collage character without sacrificing the foreground.", minutes: 9, steps: [
+                    "Duplicate a short phrase or texture from your own recording. Keep the clean source available and name the copy clearly.",
+                    "On the copy, narrow the bandwidth, audition gentle saturation or a coarse pitch shift, and render a version with its tail. Change one property at a time so you can hear its contribution.",
+                    "Cut the render into a few deliberate fragments with fades. Place them as responses or quiet tails around the clean lead, keeping a recurring rhythmic idea.",
+                    "Automate the fragments out of important lyrics. If the result is merely dull, restore a clean attack or use the degraded sound only at a transition."
+                ], check: "The contrast should feel like part of the song’s identity. Match levels and remove fragments that add noise without a musical purpose.", key: "texture.collage")
+            ]
+        }
+        return [make(lens, daw: daw, tempo: bpm)] + extras
+    }
+}
+
+struct NoteTime: Identifiable, Sendable {
+    var name: String
+    var beats: Double
+    var id: String { name }
+    func milliseconds(at bpm: Double) -> Double? {
+        guard bpm.isFinite, (40...240).contains(bpm) else { return nil }
+        return 60000 / bpm * beats
+    }
+    static let all = [NoteTime(name: "Quarter", beats: 1), NoteTime(name: "Dotted eighth", beats: 0.75),
+                      NoteTime(name: "Eighth", beats: 0.5), NoteTime(name: "Eighth triplet", beats: 1.0 / 3),
+                      NoteTime(name: "Sixteenth", beats: 0.25)]
+}

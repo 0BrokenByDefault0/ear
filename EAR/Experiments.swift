@@ -7,7 +7,14 @@ struct Experiment: Identifiable {
     var minutes: Int
     var steps: [String]
     var check: String
-    var id: Lens { lens }
+    var key: String? = nil
+    var id: String { key ?? lens.rawValue }
+
+    func matches(_ query: String) -> Bool {
+        let words = query.split(whereSeparator: { $0.isWhitespace })
+        let content = ([title, purpose, lens.rawValue, check] + steps).joined(separator: " ")
+        return words.allSatisfy { content.localizedStandardContains(String($0)) }
+    }
 
     static func make(_ lens: Lens, daw: DAW, tempo: Double?) -> Experiment {
         let studio = daw == .studio

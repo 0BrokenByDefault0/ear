@@ -21,7 +21,7 @@ enum AudioFiles {
                 try FileManager.default.copyItem(at: url, to: destination)
                 try Task.checkCancellation()
                 let copied = try destination.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                guard copied > 0, copied <= 500_000_000 else { throw EarError.message("Choose an audio file no larger than 500 MB.") }
+                guard copied == size else { throw EarError.message("The audio copy was incomplete. Download the file fully in Files, then try again.") }
             }
         }
         do {
