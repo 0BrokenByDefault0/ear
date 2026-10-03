@@ -10,7 +10,9 @@ struct ListenView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Eyebrow("The art inside the audio").padding(.top, 12)
+                Text("EAR").font(.system(.subheadline, design: .monospaced).weight(.semibold)).tracking(6)
+                    .foregroundStyle(Ink.primary).accessibilityAddTraits(.isHeader)
+                Eyebrow("The art inside the audio").padding(.top, 22)
                 Text("Listen deeper.").font(Ink.display(50)).foregroundStyle(Ink.primary).padding(.top, 10)
                 Text("Bring a song you love. Measure what's there, hear why it works, then practise it in your own session.")
                     .font(.subheadline).lineSpacing(3).foregroundStyle(Ink.secondary).padding(.top, 6)
@@ -26,10 +28,6 @@ struct ListenView: View {
         .background { ZStack { Ink.background.ignoresSafeArea(); Atmosphere() } }
         .foregroundStyle(Ink.primary)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text("EAR").font(.system(.subheadline, design: .monospaced).weight(.semibold)).tracking(6).foregroundStyle(Ink.primary)
-                    .accessibilityAddTraits(.isHeader)
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Settings", systemImage: "slider.horizontal.3", action: openSettings).disabled(!store.canStartStudy)
             }

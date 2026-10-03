@@ -58,13 +58,14 @@ import XCTest
         let pick = app.buttons["importAudio"]
         XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
         let cancel = app.buttons["Cancel"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 20), app.debugDescription)
+        // The document browser runs in a separate process that can take a while to start on a freshly booted simulator.
+        XCTAssertTrue(cancel.waitForExistence(timeout: 90), app.debugDescription)
         shot("00-File-picker")
         cancel.tap()
         expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: pick)
         waitForExpectations(timeout: 10)
         pick.tap()
-        XCTAssertTrue(cancel.waitForExistence(timeout: 20)); cancel.tap()
+        XCTAssertTrue(cancel.waitForExistence(timeout: 45)); cancel.tap()
         XCTAssertTrue(pick.waitForExistence(timeout: 10))
     }
 
@@ -134,7 +135,14 @@ import XCTest
         app.buttons["transportPlay"].tap()
         app.buttons["phraseLoop"].tap()
         app.buttons["Set loop start here"].tap()
-        app.sliders["playbackPosition"].adjust(toNormalizedSliderPosition: 0.35)
+        // Wait for the menu to finish dismissing so the slider drag is not swallowed by it.
+        XCTAssertTrue(element("Start marked", in: app).waitForExistence(timeout: 5))
+        let slider = app.sliders["playbackPosition"]
+        let marked = slider.value as? String
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: slider)
+        waitForExpectations(timeout: 5)
+        for _ in 0..<3 where (slider.value as? String) == marked { slider.adjust(toNormalizedSliderPosition: 0.6) }
+        XCTAssertNotEqual(slider.value as? String, marked, "Scrubbing must move the playhead")
         app.buttons["phraseLoop"].tap()
         app.buttons["Set loop end here"].tap()
         XCTAssertTrue(app.staticTexts["Looping · Your phrase"].waitForExistence(timeout: 5))

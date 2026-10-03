@@ -73,7 +73,7 @@ struct StudyView: View {
 
     private func header(_ study: Study) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Eyebrow(study.isDemo ? "An original study" : "A closer listen")
+            Eyebrow("A closer listen")
             Text(study.title).font(Ink.display(44)).lineLimit(3).minimumScaleFactor(0.6).accessibilityIdentifier("studyTitle")
                 .accessibilityAddTraits(.isHeader)
             Text(study.source).font(.caption).foregroundStyle(Ink.secondary)
