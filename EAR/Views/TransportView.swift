@@ -90,7 +90,7 @@ struct TransportView: View {
     private var status: String {
         if let start = store.loopStart { return "Start marked · \(clock(start))" }
         if let loop = store.loop { return "Looping · \(loop.label)" }
-        if store.mono { return "Mono fold-down (L+R)/2" }
+        if store.mono { return "Mono fold-down" }
         return "Listen for the details"
     }
 }

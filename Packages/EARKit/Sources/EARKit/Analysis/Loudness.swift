@@ -68,7 +68,7 @@ public struct LoudnessTarget: Identifiable, Sendable {
         LoudnessTarget(name: "Spotify", lufs: -14),
         LoudnessTarget(name: "YouTube", lufs: -14),
         LoudnessTarget(name: "Apple Music", lufs: -16),
-        LoudnessTarget(name: "Broadcast (EBU R128)", lufs: -23),
+        LoudnessTarget(name: "Broadcast R128", lufs: -23),
     ]
 
     /// Gain a normalizing service would typically apply. Positive values are only applied by some services.

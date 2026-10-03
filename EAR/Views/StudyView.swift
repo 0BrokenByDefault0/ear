@@ -249,7 +249,7 @@ struct LoudnessCard: View {
                         Text(target.name).font(.subheadline)
                         Text("\(decimal(target.lufs, 0)) LUFS").font(.caption).foregroundStyle(Ink.secondary)
                         Spacer()
-                        Text(abs(change) < 0.5 ? "About the same" : change < 0 ? "Turned down \(decimal(-change, 1)) dB" : "Up to \(decimal(change, 1)) dB quieter")
+                        Text(abs(change) < 0.5 ? "On target" : change < 0 ? "Turned down \(decimal(-change, 1)) dB" : "\(decimal(change, 1)) dB under target")
                             .font(.caption.monospacedDigit()).foregroundStyle(change < -0.5 ? Ink.warm : Ink.secondary)
                     }
                     .accessibilityElement(children: .combine)
@@ -257,7 +257,7 @@ struct LoudnessCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Reference targets for typical normalization. Services set and change their own policies; a louder master is turned down, not made louder.")
+            Text("Reference targets for typical normalization. Services set and change their own policies. Louder masters are turned down; quieter ones are raised by some services and left alone by others.")
                 .font(.caption2).foregroundStyle(Ink.secondary).lineSpacing(2)
         }
         .card()
