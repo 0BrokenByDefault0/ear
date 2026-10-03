@@ -1,63 +1,392 @@
 // !$*UTF8*$!
-{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
-410E9C9F24B32497C2677794 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioAnalyzer.swift; sourceTree = "<group>"; };
-3BC55F351F7EBF2BA953F486 = { isa = PBXBuildFile; fileRef = 410E9C9F24B32497C2677794; };
-78D2FDD535D629AFD096D5D1 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFiles.swift; sourceTree = "<group>"; };
-CBA5C7D80F7CBA168CA5EA89 = { isa = PBXBuildFile; fileRef = 78D2FDD535D629AFD096D5D1; };
-D9050A49F210EE381C91CCFE = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design.swift; sourceTree = "<group>"; };
-F3A439B843A32962F1E055DE = { isa = PBXBuildFile; fileRef = D9050A49F210EE381C91CCFE; };
-8CFAD6ED68171F2EC0075430 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarApp.swift; sourceTree = "<group>"; };
-E44361E1F27FD1FAA5251677 = { isa = PBXBuildFile; fileRef = 8CFAD6ED68171F2EC0075430; };
-A65D3858D66060B0536B0D09 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EarStore.swift; sourceTree = "<group>"; };
-8A42875669448C62FCDD8B44 = { isa = PBXBuildFile; fileRef = A65D3858D66060B0536B0D09; };
-2E89EE89C68A06CB80888B99 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Experiments.swift; sourceTree = "<group>"; };
-84C0FF4E0B53260CD6AFABDF = { isa = PBXBuildFile; fileRef = 2E89EE89C68A06CB80888B99; };
-D972892D01974CF3597F06B1 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeViews.swift; sourceTree = "<group>"; };
-EAE1BB63AB7F11B36CBE9904 = { isa = PBXBuildFile; fileRef = D972892D01974CF3597F06B1; };
-8BF4A28E43F6CF370D3EE1C2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-E22D430D1ABEAD104B65960F = { isa = PBXBuildFile; fileRef = 8BF4A28E43F6CF370D3EE1C2; };
-143C8F22FEE77CC3B840A661 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookFiles.swift; sourceTree = "<group>"; };
-DA63B039EC664873119D7419 = { isa = PBXBuildFile; fileRef = 143C8F22FEE77CC3B840A661; };
-313DBF55E78E15B30C749614 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductionKnowledge.swift; sourceTree = "<group>"; };
-F4E59809DE9715B64AAA753E = { isa = PBXBuildFile; fileRef = 313DBF55E78E15B30C749614; };
-16459F98CC9B789063661ABE = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyViews.swift; sourceTree = "<group>"; };
-C7731D1857AB7067471B7604 = { isa = PBXBuildFile; fileRef = 16459F98CC9B789063661ABE; };
-28AAD1477D5182D66D4B03B3 = { isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-1B316C2A61BC07AD2926E500 = { isa = PBXBuildFile; fileRef = 28AAD1477D5182D66D4B03B3; };
-26B2A637F7DC4079D5AB78A5 = { isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-85485ABDDFC5AA715BEE5C09 = { isa = PBXBuildFile; fileRef = 26B2A637F7DC4079D5AB78A5; };
-BE200D8A0A6FC14DE342D9FE = { isa = PBXFileReference; lastKnownFileType = file; path = AeonNocturne-Regular.otf; sourceTree = "<group>"; };
-B411D60157170F36EF864483 = { isa = PBXBuildFile; fileRef = BE200D8A0A6FC14DE342D9FE; };
-2FDC3F2810A54C024F889939 = { isa = PBXFileReference; lastKnownFileType = text.xml; path = GUST-FONT-LICENSE.txt; sourceTree = "<group>"; };
-27DBEE6CFE5DD1D096B59841 = { isa = PBXBuildFile; fileRef = 2FDC3F2810A54C024F889939; };
-4FB2EECF7FA752B3B39183B5 = { isa = PBXFileReference; lastKnownFileType = text.xml; path = LPPL-1.3c.tex; sourceTree = "<group>"; };
-7202F1FF8E59DD30D0D4D41A = { isa = PBXBuildFile; fileRef = 4FB2EECF7FA752B3B39183B5; };
-EA2A9FB9FB5C65A26A832C35 = { isa = PBXFileReference; lastKnownFileType = text.xml; path = README-Aeon-Nocturne.txt; sourceTree = "<group>"; };
-85F03F7717FC28845353F418 = { isa = PBXBuildFile; fileRef = EA2A9FB9FB5C65A26A832C35; };
-38A007151ABE87CC01A5B6E9 = { isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
-B7480EC88B7F22D0A4757273 = { isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EARUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-3A2A88DEEFF3D1D23E496597 = { isa = PBXGroup; children = (410E9C9F24B32497C2677794, 78D2FDD535D629AFD096D5D1, D9050A49F210EE381C91CCFE, 8CFAD6ED68171F2EC0075430, A65D3858D66060B0536B0D09, 2E89EE89C68A06CB80888B99, D972892D01974CF3597F06B1, 8BF4A28E43F6CF370D3EE1C2, 143C8F22FEE77CC3B840A661, 313DBF55E78E15B30C749614, 16459F98CC9B789063661ABE, 28AAD1477D5182D66D4B03B3, 26B2A637F7DC4079D5AB78A5, BE200D8A0A6FC14DE342D9FE, 2FDC3F2810A54C024F889939, 4FB2EECF7FA752B3B39183B5, EA2A9FB9FB5C65A26A832C35,); path = EAR; sourceTree = "<group>"; };
-E05FCB614AB36FDEE72EE1F2 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
-80FAC02A0BD5812E2A00F339 = { isa = PBXBuildFile; fileRef = E05FCB614AB36FDEE72EE1F2; };
-8B7A6DECC0651D269EA794C7 = { isa = PBXGroup; children = (E05FCB614AB36FDEE72EE1F2,); path = EARUITests; sourceTree = "<group>"; };
-FBDC4F23F93125BBEEAE800C = { isa = PBXGroup; children = (38A007151ABE87CC01A5B6E9, B7480EC88B7F22D0A4757273,); name = Products; sourceTree = "<group>"; };
-B28B7AF69320201D1CF206EB = { isa = PBXGroup; children = (3A2A88DEEFF3D1D23E496597, 8B7A6DECC0651D269EA794C7, FBDC4F23F93125BBEEAE800C,); sourceTree = "<group>"; };
-BCE16DD0260827ECF338C787 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (3BC55F351F7EBF2BA953F486, CBA5C7D80F7CBA168CA5EA89, F3A439B843A32962F1E055DE, E44361E1F27FD1FAA5251677, 8A42875669448C62FCDD8B44, 84C0FF4E0B53260CD6AFABDF, EAE1BB63AB7F11B36CBE9904, E22D430D1ABEAD104B65960F, DA63B039EC664873119D7419, F4E59809DE9715B64AAA753E, C7731D1857AB7067471B7604,); runOnlyForDeploymentPostprocessing = 0; };
-0189424A5A60FED329FA868E = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (1B316C2A61BC07AD2926E500, 85485ABDDFC5AA715BEE5C09, B411D60157170F36EF864483, 27DBEE6CFE5DD1D096B59841, 7202F1FF8E59DD30D0D4D41A, 85F03F7717FC28845353F418,); runOnlyForDeploymentPostprocessing = 0; };
-7561BFB015D8F536760CB671 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-9F3002A5D69B22D357A58AA9 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (80FAC02A0BD5812E2A00F339,); runOnlyForDeploymentPostprocessing = 0; };
-89E1FD6268CC0F221A2BE178 = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; }; name = Debug; };
-E9B2E96ABC5F6856F2BE79CF = { isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = EAR/Info.plist; MARKETING_VERSION = 1.2; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; ENABLE_PREVIEWS = YES; }; name = Debug; };
-FCB48D8F88BCDB0ED9FADFD7 = { isa = XCBuildConfiguration; buildSettings = { GENERATE_INFOPLIST_FILE = YES; CODE_SIGN_STYLE = Automatic; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = EAR; }; name = Debug; };
-E6DE6C99132752C914FEF632 = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; }; name = Release; };
-5A8C91857F674E16E2724F47 = { isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = EAR/Info.plist; MARKETING_VERSION = 1.2; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; ENABLE_PREVIEWS = YES; }; name = Release; };
-942EEBBACD6C88CAE7F29B29 = { isa = XCBuildConfiguration; buildSettings = { GENERATE_INFOPLIST_FILE = YES; CODE_SIGN_STYLE = Automatic; PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear.uitests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = EAR; }; name = Release; };
-793D6D7C60BD6329D6F91FDB = { isa = XCConfigurationList; buildConfigurations = (89E1FD6268CC0F221A2BE178, E6DE6C99132752C914FEF632,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-0C11D463C749DB5838E2C0E4 = { isa = XCConfigurationList; buildConfigurations = (E9B2E96ABC5F6856F2BE79CF, 5A8C91857F674E16E2724F47,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-D61E3363DEF3F4E448C68105 = { isa = XCConfigurationList; buildConfigurations = (FCB48D8F88BCDB0ED9FADFD7, 942EEBBACD6C88CAE7F29B29,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-7D1043473D55BFA90E8530D3 = { isa = PBXNativeTarget; buildConfigurationList = 0C11D463C749DB5838E2C0E4; buildPhases = (BCE16DD0260827ECF338C787, 7561BFB015D8F536760CB671, 0189424A5A60FED329FA868E,); buildRules = (); dependencies = (); name = EAR; productName = EAR; productReference = 38A007151ABE87CC01A5B6E9; productType = "com.apple.product-type.application"; };
-D799BAE6088A90139B415FCC = { isa = PBXContainerItemProxy; containerPortal = 98F54143AB4E86B28C3AFEE0; proxyType = 1; remoteGlobalIDString = 7D1043473D55BFA90E8530D3; remoteInfo = EAR; };
-DE58E2B17C19600779694943 = { isa = PBXTargetDependency; target = 7D1043473D55BFA90E8530D3; targetProxy = D799BAE6088A90139B415FCC; };
-04D13FD0AA6F0197CF2C9990 = { isa = PBXNativeTarget; buildConfigurationList = D61E3363DEF3F4E448C68105; buildPhases = (9F3002A5D69B22D357A58AA9,); buildRules = (); dependencies = (DE58E2B17C19600779694943,); name = EARUITests; productName = EARUITests; productReference = B7480EC88B7F22D0A4757273; productType = "com.apple.product-type.bundle.ui-testing"; };
-98F54143AB4E86B28C3AFEE0 = { isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; TargetAttributes = { 7D1043473D55BFA90E8530D3 = { CreatedOnToolsVersion = 16.0; }; 04D13FD0AA6F0197CF2C9990 = { CreatedOnToolsVersion = 16.0; TestTargetID = 7D1043473D55BFA90E8530D3; }; }; }; buildConfigurationList = 793D6D7C60BD6329D6F91FDB; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = B28B7AF69320201D1CF206EB; productRefGroup = FBDC4F23F93125BBEEAE800C; projectDirPath = ""; projectRoot = ""; targets = (7D1043473D55BFA90E8530D3, 04D13FD0AA6F0197CF2C9990,); };
-}; rootObject = 98F54143AB4E86B28C3AFEE0; }
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		EA0000000000000000000B01 /* EARKit in Frameworks */ = {isa = PBXBuildFile; productRef = EA0000000000000000000D01 /* EARKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		EA0000000000000000000C01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA0000000000000000000101;
+			remoteInfo = EAR;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		EA0000000000000000000F01 /* EAR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EAR.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA0000000000000000000F02 /* EARUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EARUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		EA0000000000000000000E01 /* Exceptions for "EAR" folder in "EAR" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Resources/Info.plist,
+			);
+			target = EA0000000000000000000101 /* EAR */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		EA0000000000000000000A01 /* EAR */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EA0000000000000000000E01 /* Exceptions for "EAR" folder in "EAR" target */,
+			);
+			path = EAR;
+			sourceTree = "<group>";
+		};
+		EA0000000000000000000A02 /* EARUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = EARUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA0000000000000000000202 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA0000000000000000000B01 /* EARKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA0000000000000000000212 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		EA0000000000000000000901 = {
+			isa = PBXGroup;
+			children = (
+				EA0000000000000000000A01 /* EAR */,
+				EA0000000000000000000A02 /* EARUITests */,
+				EA0000000000000000000902 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA0000000000000000000902 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA0000000000000000000F01 /* EAR.app */,
+				EA0000000000000000000F02 /* EARUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA0000000000000000000101 /* EAR */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA0000000000000000000802 /* Build configuration list for PBXNativeTarget "EAR" */;
+			buildPhases = (
+				EA0000000000000000000201 /* Sources */,
+				EA0000000000000000000202 /* Frameworks */,
+				EA0000000000000000000203 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EA0000000000000000000A01 /* EAR */,
+			);
+			name = EAR;
+			packageProductDependencies = (
+				EA0000000000000000000D01 /* EARKit */,
+			);
+			productName = EAR;
+			productReference = EA0000000000000000000F01 /* EAR.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA0000000000000000000102 /* EARUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA0000000000000000000803 /* Build configuration list for PBXNativeTarget "EARUITests" */;
+			buildPhases = (
+				EA0000000000000000000211 /* Sources */,
+				EA0000000000000000000212 /* Frameworks */,
+				EA0000000000000000000213 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EA0000000000000000000C02 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				EA0000000000000000000A02 /* EARUITests */,
+			);
+			name = EARUITests;
+			productName = EARUITests;
+			productReference = EA0000000000000000000F02 /* EARUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					EA0000000000000000000101 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					EA0000000000000000000102 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = EA0000000000000000000101;
+					};
+				};
+			};
+			buildConfigurationList = EA0000000000000000000801 /* Build configuration list for PBXProject "EAR" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA0000000000000000000901;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EA0000000000000000000D02 /* XCLocalSwiftPackageReference "Packages/EARKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = EA0000000000000000000902 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EA0000000000000000000101 /* EAR */,
+				EA0000000000000000000102 /* EARUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EA0000000000000000000203 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA0000000000000000000213 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EA0000000000000000000201 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA0000000000000000000211 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EA0000000000000000000C02 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA0000000000000000000101 /* EAR */;
+			targetProxy = EA0000000000000000000C01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		EA0000000000000000000701 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EA0000000000000000000702 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EA0000000000000000000711 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = EAR/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EA0000000000000000000712 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = EAR/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		EA0000000000000000000721 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EAR;
+			};
+			name = Debug;
+		};
+		EA0000000000000000000722 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeon.ear.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EAR;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EA0000000000000000000801 /* Build configuration list for PBXProject "EAR" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA0000000000000000000701 /* Debug */,
+				EA0000000000000000000702 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA0000000000000000000802 /* Build configuration list for PBXNativeTarget "EAR" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA0000000000000000000711 /* Debug */,
+				EA0000000000000000000712 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA0000000000000000000803 /* Build configuration list for PBXNativeTarget "EARUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA0000000000000000000721 /* Debug */,
+				EA0000000000000000000722 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		EA0000000000000000000D02 /* XCLocalSwiftPackageReference "Packages/EARKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/EARKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		EA0000000000000000000D01 /* EARKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EA0000000000000000000D02 /* XCLocalSwiftPackageReference "Packages/EARKit" */;
+			productName = EARKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = EA0000000000000000000001 /* Project object */;
+}
