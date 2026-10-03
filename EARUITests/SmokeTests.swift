@@ -149,7 +149,12 @@ import XCTest
         expectPlayback("Pause", in: app)
         app.buttons["transportPlay"].tap()
         app.buttons["phraseLoop"].tap()
-        app.buttons["Clear loop"].tap()
+        // The menu item; the Moments section has its own "Clear loop" button too.
+        let clear = app.collectionViews.buttons["Clear loop"].firstMatch
+        XCTAssertTrue(clear.waitForExistence(timeout: 5))
+        clear.tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.staticTexts["Looping · Your phrase"])
+        waitForExpectations(timeout: 5)
 
         app.buttons["editTempo"].tap()
         XCTAssertTrue(app.buttons["Apply"].waitForExistence(timeout: 5))
