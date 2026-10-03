@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs><radialGradient id="h"><stop stop-color="#224251"/><stop offset=".7" stop-color="#0a121e"/><stop offset="1" stop-color="#05070c"/></radialGradient><linearGradient id="s" x2=".2" y2="1"><stop stop-color="#eaf6fa"/><stop offset=".5" stop-color="#8ac5d8"/><stop offset="1" stop-color="#426477"/></linearGradient></defs>
+<rect width="1024" height="1024" fill="#05070c"/><circle cx="512" cy="512" r="480" fill="url(#h)"/>
+<g fill="none" stroke="url(#s)"><ellipse cx="512" cy="512" rx="319" ry="296" stroke-width="3" opacity=".3"/><ellipse cx="512" cy="512" rx="301" ry="282" stroke-width="4" opacity=".55"/><ellipse cx="512" cy="512" rx="279" ry="266" stroke-width="7"/><ellipse cx="512" cy="512" rx="254" ry="251" stroke-width="3" opacity=".5"/></g>
+<path d="M290 512 L355 512 Q367 512 374 490 L391 540 L414 455 L439 578 L465 401 L491 619 L519 379 L548 615 L574 427 L599 568 L624 468 L648 530 Q657 512 670 512 L734 512" fill="none" stroke="#e9f1f6" stroke-linejoin="round" stroke-linecap="round" stroke-width="7"/>
+<circle cx="757" cy="305" r="8" fill="#d9edf3"/>
+</svg>

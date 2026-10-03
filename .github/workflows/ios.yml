@@ -1,0 +1,140 @@
+name: EAR
+on:
+  push:
+    branches: [main, 'codex/**', 'claude/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ear-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  # Fast feedback: analysis, notebook and content tests. No simulator needed.
+  kit-linux:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: EARKit tests (Linux)
+        working-directory: Packages/EARKit
+        run: swift test --parallel
+
+  kit-macos:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: python3 scripts/select_xcode.py
+      - name: EARKit tests, including AVFoundation import and decode
+        working-directory: Packages/EARKit
+        run: |
+          set -o pipefail
+          python3 ../../scripts/bounded.py swift test --parallel 2>&1 | tee ../../kit-macos.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EARKit-macOS-tests
+          path: kit-macos.log
+          retention-days: 14
+
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode with iOS 26 SDK
+        run: python3 scripts/select_xcode.py
+      - name: Compile unsigned iPhone app
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -version
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build 2>&1 | tee build/device.log
+      - name: Package IPA
+        run: |
+          mkdir -p build/package/Payload
+          cp -R build/device/Build/Products/Release-iphoneos/EAR.app build/package/Payload/
+          VERSION=$(python3 - <<'PY'
+          import json, os, plistlib
+          app = 'build/package/Payload/EAR.app'
+          info = plistlib.load(open(app + '/Info.plist', 'rb'))
+          assert info['MinimumOSVersion'] == '26.0', info['MinimumOSVersion']
+          assert info['CFBundleIdentifier'] == 'com.aeon.ear'
+          assert os.path.isdir(app + '/EARKit_EARKit.bundle'), 'EARKit resources must ship in the app'
+          assert not any(name.endswith('Check.caf') for name in os.listdir(app)), 'Test fixtures must not ship'
+          json.dump({'version': info['CFBundleShortVersionString'], 'build': info['CFBundleVersion'],
+                     'commit': os.environ['GITHUB_SHA'], 'unsigned': True}, open(app + '/BuildManifest.json', 'w'), indent=2)
+          print(info['CFBundleShortVersionString'])
+          PY
+          )
+          echo "EAR_VERSION=$VERSION" >> "$GITHUB_ENV"
+          cd build/package
+          zip -q -r "../EAR-$VERSION-unsigned.ipa" Payload
+          cd ..
+          shasum -a 256 "EAR-$VERSION-unsigned.ipa" > SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EAR-unsigned-IPA
+          path: |
+            build/EAR-*-unsigned.ipa
+            build/SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EAR-device-log
+          path: build/device.log
+
+  ui:
+    needs: [kit-macos]
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode and simulator
+        run: python3 scripts/select_xcode.py --simulator
+      - name: Boot simulator
+        run: |
+          mkdir -p build
+          set -o pipefail
+          python3 scripts/bounded.py xcrun simctl bootstatus "$EAR_SIM" -b 2>&1 | tee build/boot.log
+      - name: Build simulator tests
+        run: |
+          set -o pipefail
+          python3 scripts/bounded.py xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug \
+            -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator ONLY_ACTIVE_ARCH=YES \
+            build-for-testing 2>&1 | tee build/simulator-build.log
+      - name: UI tests
+        run: |
+          set -o pipefail
+          python3 scripts/bounded.py --limit 1800 xcodebuild -project EAR.xcodeproj -scheme EAR -configuration Debug \
+            -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator -resultBundlePath build/UI.xcresult \
+            -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 300 -maximum-test-execution-time-allowance 300 \
+            test-without-building 2>&1 | tee build/ui.log
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          python3 scripts/bounded.py xcrun simctl spawn "$EAR_SIM" log show --last 30m --info --style compact \
+            --predicate 'subsystem == "com.aeon.ear"' > build/runtime-diagnostics.log 2>&1 || true
+      - name: Collect screenshots
+        if: always()
+        run: |
+          mkdir -p build/screenshots
+          if [ -f build/UI.xcresult/Info.plist ]; then
+            xcrun xcresulttool export attachments --path build/UI.xcresult --output-path build/screenshots || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: EAR-native-validation
+          path: |
+            build/*.log
+            build/screenshots
+          retention-days: 14
