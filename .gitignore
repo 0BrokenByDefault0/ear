@@ -4,3 +4,6 @@ DerivedData/
 xcuserdata/
 .DS_Store
 __pycache__/
+.build/
+.swiftpm/
+Packages/*/Package.resolved
