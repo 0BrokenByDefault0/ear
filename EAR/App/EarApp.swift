@@ -39,7 +39,7 @@ struct RootView: View {
     @State private var tab = AppTab.listen
     @State private var sheet: Sheet?
     @State private var pickingFile = false
-    @State private var pendingImport: URL?
+    @State private var pendingImport: (url: URL, ownedCopy: Bool)?
 
     private var importing: Binding<Bool> {
         Binding(get: { pickingFile }, set: { show in
@@ -66,19 +66,15 @@ struct RootView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .fileImporter(isPresented: $pickingFile, allowedContentTypes: [.audio, .data], allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls):
-                earTrace("Native file selection received: \(urls.count)")
-                if urls.isEmpty {
-                    store.error = "Files could not prepare that item. If it is stored in iCloud or another provider, download it in the Files app first, then try again."
-                } else if urls.count > 1 {
-                    store.error = "Choose one audio file at a time, then tap Open."
-                } else if let url = urls.first {
-                    queueImport(url)
+        .onChange(of: pickingFile) { _, show in
+            guard show else { return }
+            AudioPicker.shared.present { outcome in
+                pickingFile = false
+                switch outcome {
+                case .picked(let url): queueImport(url, ownedCopy: true)
+                case .cancelled: break
+                case .failed(let message): store.error = message
                 }
-            case .failure(let error):
-                store.error = "Could not open the selected file. \(error.localizedDescription)"
             }
         }
         .sheet(item: $sheet, onDismiss: didDismiss) { item in
@@ -96,25 +92,25 @@ struct RootView: View {
             if show { sheet = .study }
             else if sheet == .study { sheet = nil }
         }
-        .onOpenURL { url in if url.isFileURL { queueImport(url) } }
+        .onOpenURL { url in if url.isFileURL { queueImport(url, ownedCopy: false) } }
         .modifier(EarErrorAlert(active: sheet == nil && !pickingFile && onboarded))
         .sensoryFeedback(.success, trigger: store.justFinished)
         .overlay { if store.busy { AnalysisOverlay() } }
     }
 
-    private func queueImport(_ url: URL) {
-        pendingImport = url
-        // fileImporter completes after its presentation binding resets. External "Open in EAR"
-        // URLs may arrive while a study or settings sheet still needs to dismiss.
+    /// - Parameter ownedCopy: true when the file is EAR's own temporary copy from the picker, which is removed after import.
+    private func queueImport(_ url: URL, ownedCopy: Bool) {
+        pendingImport = (url, ownedCopy)
+        // External "Open in EAR" URLs may arrive while a study or settings sheet still needs to dismiss.
         if sheet != nil { sheet = nil; store.showStudy = false }
         else { didDismiss() }
     }
 
     private func didDismiss() {
         if store.showStudy { store.close() }
-        guard let url = pendingImport else { return }
+        guard let pending = pendingImport else { return }
         pendingImport = nil
-        store.importFile(url)
+        store.importFile(pending.url, removeSourceAfterImport: pending.ownedCopy)
     }
 }
 
