@@ -28,7 +28,17 @@ import UniformTypeIdentifiers
             completion(.failed("EAR could not open Files right now. Try again in a moment."))
             return
         }
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.types, asCopy: true)
+        var types = Self.types, asCopy = true
+        #if DEBUG
+        // Diagnostic matrix for the UI tests: -ear.pickerMode copyAudio | openAudio.
+        switch UserDefaults.standard.string(forKey: "ear.pickerMode") {
+        case "copyAudio": types = [.audio]
+        case "openAudio": types = [.audio]; asCopy = false
+        default: break
+        }
+        earTrace("Picker mode: asCopy=\(asCopy) types=\(types.map(\.identifier))")
+        #endif
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: asCopy)
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
         picker.delegate = self
@@ -40,6 +50,7 @@ import UniformTypeIdentifiers
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         earTrace("Document picker returned \(urls.count) item(s)")
         if let url = urls.first {
+            earTrace("Picked \(url.lastPathComponent)")
             finish(.picked(url))
         } else {
             finish(.failed("Files could not prepare that item. If it is stored in iCloud or another app, download it in the Files app first, then try again."))

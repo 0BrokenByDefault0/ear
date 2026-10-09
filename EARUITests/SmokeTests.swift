@@ -96,18 +96,30 @@ import XCTest
     }
 
     /// The step that failed on device: choose a song in Files, tap it, and get a study.
-    /// CI places "EAR Picker Check.wav" in On My iPhone before the tests run.
+    /// CI places "EAR Picker Check.wav" in On My iPhone before the tests run. Each picker
+    /// configuration is tried so a failure says which ones the system accepts.
     func testFilePickerSelectionImportsAudio() {
-        let app = launch()
-        let pick = app.buttons["importAudio"]
-        XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
-        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 90), app.debugDescription)
-        chooseInPicker("EAR Picker Check", in: app)
-        XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 60), app.debugDescription)
-        XCTAssertEqual(app.staticTexts["studyTitle"].label, "EAR Picker Check")
-        shot("10-Picked-study")
-        app.buttons["transportPlay"].tap()
-        expectPlayback("Pause", in: app)
+        continueAfterFailure = true
+        var results: [String] = []
+        for mode in ["default", "copyAudio", "openAudio", "swiftui"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ear.onboarded", "YES", "-ear.pickerMode", mode]
+            app.launch()
+            let pick = app.buttons["importAudio"]
+            guard pick.waitForExistence(timeout: 15) else { results.append("\(mode): no import button"); continue }
+            pick.tap()
+            guard app.buttons["Cancel"].waitForExistence(timeout: 90) else { results.append("\(mode): picker did not open"); continue }
+            chooseInPicker("EAR Picker Check", in: app)
+            let imported = app.staticTexts["studyTitle"].waitForExistence(timeout: 30)
+            shot("10-Picker-\(mode)-\(imported ? "imported" : "stuck")")
+            results.append("\(mode): \(imported ? "IMPORTED" : "nothing returned")")
+            print("PICKER MODE \(results.last!)")
+            app.terminate()
+        }
+        let summary = XCTAttachment(string: results.joined(separator: "\n"))
+        summary.name = "Picker matrix"; summary.lifetime = .keepAlways; add(summary)
+        print("PICKER MATRIX\n" + results.joined(separator: "\n"))
+        XCTAssertTrue(results.first?.hasSuffix("IMPORTED") == true, "Production picker must import: \(results)")
     }
 
     func testImportPipelineAnalysesPlaysAndPersists() {

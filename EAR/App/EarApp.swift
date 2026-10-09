@@ -39,6 +39,7 @@ struct RootView: View {
     @State private var tab = AppTab.listen
     @State private var sheet: Sheet?
     @State private var pickingFile = false
+    @State private var swiftUIPicking = false
     @State private var pendingImport: (url: URL, ownedCopy: Bool)?
 
     private var importing: Binding<Bool> {
@@ -66,8 +67,19 @@ struct RootView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        #if DEBUG
+        .fileImporter(isPresented: $swiftUIPicking, allowedContentTypes: [.audio], allowsMultipleSelection: false) { result in
+            earTrace("SwiftUI importer result: \(result)")
+            if case .success(let urls) = result, let url = urls.first { queueImport(url, ownedCopy: false) }
+        }
+        #endif
         .onChange(of: pickingFile) { _, show in
             guard show else { return }
+            #if DEBUG
+            if UserDefaults.standard.string(forKey: "ear.pickerMode") == "swiftui" {
+                pickingFile = false; swiftUIPicking = true; return
+            }
+            #endif
             AudioPicker.shared.present { outcome in
                 pickingFile = false
                 switch outcome {
