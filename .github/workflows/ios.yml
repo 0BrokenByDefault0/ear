@@ -13,7 +13,8 @@ jobs:
   # Fast feedback: analysis, notebook and content tests. No simulator needed.
   kit-linux:
     runs-on: ubuntu-latest
-    container: swift:6.2
+    # AWS mirror of the official image; avoids Docker Hub anonymous pull limits on shared runners.
+    container: public.ecr.aws/docker/library/swift:6.2
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
