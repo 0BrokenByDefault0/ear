@@ -101,7 +101,9 @@ import XCTest
     func testFilePickerSelectionImportsAudio() {
         continueAfterFailure = true
         var results: [String] = []
-        for mode in ["default", "copyAudio", "openAudio", "swiftui"] {
+        let modes = ProcessInfo.processInfo.environment["EAR_PICKER_MODES"]?.split(separator: ",").map(String.init)
+            ?? ["default", "copyAudio", "openAudio", "swiftui"]
+        for mode in modes {
             let app = XCUIApplication()
             app.launchArguments = ["-ear.onboarded", "YES", "-ear.pickerMode", mode]
             app.launch()
