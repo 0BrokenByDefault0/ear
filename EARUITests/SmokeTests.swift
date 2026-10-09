@@ -69,6 +69,46 @@ import XCTest
         XCTAssertTrue(pick.waitForExistence(timeout: 10))
     }
 
+    /// Opens the system document browser and navigates to EAR's own folder to find a fixture.
+    func chooseInPicker(_ name: String, in app: XCUIApplication) {
+        let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+        if !file.waitForExistence(timeout: 5) {
+            let browse = app.buttons["Browse"]
+            if browse.waitForExistence(timeout: 10) { browse.tap() }
+            if !file.waitForExistence(timeout: 5) {
+                let folder = app.cells.matching(NSPredicate(format: "label == %@ OR label BEGINSWITH %@", "EAR", "EAR,")).firstMatch
+                if !folder.waitForExistence(timeout: 5) {
+                    let local = app.cells.matching(NSPredicate(format: "identifier CONTAINS %@ OR label CONTAINS %@", "On My iPhone", "On My iPhone")).firstMatch
+                    XCTAssertTrue(local.waitForExistence(timeout: 15), app.debugDescription)
+                    local.tap()
+                }
+                XCTAssertTrue(folder.waitForExistence(timeout: 15), app.debugDescription)
+                folder.tap()
+            }
+        }
+        XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: file)
+        waitForExpectations(timeout: 10)
+        shot("00-Picker-\(name)")
+        file.tap()
+        // Single selection returns on tap; some layouts still ask for Open.
+        let open = app.buttons["Open"]
+        if open.waitForExistence(timeout: 3), open.isEnabled { open.tap() }
+    }
+
+    /// The step that failed on device with SwiftUI's fileImporter: choose a file in Files and get a study.
+    func testFilePickerSelectionImportsAudio() {
+        let app = launch(["--import-ui-check"])
+        let pick = app.buttons["importAudio"]
+        XCTAssertTrue(pick.waitForExistence(timeout: 15)); pick.tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 90), app.debugDescription)
+        chooseInPicker("EAR Import Check", in: app)
+        XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 60), app.debugDescription)
+        XCTAssertEqual(app.staticTexts["studyTitle"].label, "EAR Import Check")
+        app.buttons["transportPlay"].tap()
+        expectPlayback("Pause", in: app)
+    }
+
     func testImportPipelineAnalysesPlaysAndPersists() {
         let app = launch(["--import-fixture", "EAR Import Check.caf"])
         XCTAssertTrue(app.staticTexts["studyTitle"].waitForExistence(timeout: 60), app.debugDescription)
