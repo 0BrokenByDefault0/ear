@@ -113,6 +113,15 @@ jobs:
           mkdir -p "$STORAGE/File Provider Storage"
           cp "build/EAR Picker Check.wav" "$STORAGE/File Provider Storage/"
           ls -la "$STORAGE/File Provider Storage"
+      - name: Picker control app
+        continue-on-error: true
+        run: |
+          # Diagnostic: a minimal app with only a fileImporter picks the same song. If it also fails,
+          # the simulator environment is the cause rather than EAR.
+          set -o pipefail
+          python3 scripts/bounded.py --limit 900 xcodebuild -project Diagnostics/PickerControl.xcodeproj -scheme PickerControl \
+            -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/control \
+            test 2>&1 | tee build/picker-control.log | grep -E "PICKER CONTROL|error:|Test Case.*(passed|failed)|BUILD FAILED"
       - name: Build simulator tests
         run: |
           set -o pipefail
@@ -127,33 +136,6 @@ jobs:
             -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
             -test-timeouts-enabled YES -default-test-execution-time-allowance 300 -maximum-test-execution-time-allowance 300 \
             test-without-building 2>&1 | tee build/ui.log
-      - name: Picker Info.plist bisect
-        if: always()
-        continue-on-error: true
-        run: |
-          # Diagnostic: re-run the real picker pick against copies of the built app with document keys removed.
-          APP=build/simulator/Build/Products/Debug-iphonesimulator/EAR.app
-          cp -R "$APP" build/EAR.orig.app
-          for variant in noInPlace noFileSharing noDocumentTypes noDocKeys; do
-            rm -rf "$APP"; cp -R build/EAR.orig.app "$APP"
-            PLIST="$APP/Info.plist"
-            case $variant in
-              noInPlace) /usr/libexec/PlistBuddy -c "Delete :LSSupportsOpeningDocumentsInPlace" "$PLIST" ;;
-              noFileSharing) /usr/libexec/PlistBuddy -c "Delete :UIFileSharingEnabled" "$PLIST" ;;
-              noDocumentTypes) /usr/libexec/PlistBuddy -c "Delete :CFBundleDocumentTypes" "$PLIST" ;;
-              noDocKeys)
-                /usr/libexec/PlistBuddy -c "Delete :LSSupportsOpeningDocumentsInPlace" "$PLIST"
-                /usr/libexec/PlistBuddy -c "Delete :UIFileSharingEnabled" "$PLIST"
-                /usr/libexec/PlistBuddy -c "Delete :CFBundleDocumentTypes" "$PLIST" ;;
-            esac
-            codesign --force --sign - --timestamp=none --preserve-metadata=entitlements "$APP"
-            xcrun simctl uninstall "$EAR_SIM" com.aeon.ear || true
-            echo "=== VARIANT $variant"
-            TEST_RUNNER_EAR_PICKER_MODES=default python3 scripts/bounded.py --limit 400 xcodebuild -project EAR.xcodeproj -scheme EAR \
-              -configuration Debug -destination "platform=iOS Simulator,id=$EAR_SIM" -derivedDataPath build/simulator \
-              -only-testing:EARUITests/SmokeTests/testFilePickerSelectionImportsAudio test-without-building 2>&1 \
-              | tee "build/bisect-$variant.log" | grep -E "PICKER MODE|Test Case.*(passed|failed)" || true
-          done
       - name: Collect diagnostics
         if: always()
         run: |
