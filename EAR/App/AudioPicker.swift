@@ -28,17 +28,7 @@ import UniformTypeIdentifiers
             completion(.failed("EAR could not open Files right now. Try again in a moment."))
             return
         }
-        var types = Self.types, asCopy = true
-        #if DEBUG
-        // Diagnostic matrix for the UI tests: -ear.pickerMode copyAudio | openAudio.
-        switch UserDefaults.standard.string(forKey: "ear.pickerMode") {
-        case "copyAudio": types = [.audio]
-        case "openAudio": types = [.audio]; asCopy = false
-        default: break
-        }
-        earTrace("Picker mode: asCopy=\(asCopy) types=\(types.map(\.identifier))")
-        #endif
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: asCopy)
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.types, asCopy: true)
         picker.allowsMultipleSelection = false
         picker.shouldShowFileExtensions = true
         picker.delegate = self

@@ -103,7 +103,9 @@ A field can also be `{"Studio Pro": "...", "Logic Pro": "..."}`. `KnowledgeTests
 
 Screenshots from the UI run are uploaded as workflow artifacts. Simulator checks do not establish physical-device acceptance.
 
-UI tests import files through a debug-only `--import-fixture` launch argument. That exercises the same security-scoped copy, analysis and save path as the Files picker. Driving the simulator's own file provider proved unreliable: picked items intermittently fail to materialise, which is outside EAR's control.
+UI tests import files through a debug-only `--import-fixture` launch argument. That exercises the same copy, analysis and save path as the Files picker. The picker itself is checked for present, cancel and reopen only. On the CI simulator, a file tapped in the document browser is never returned to any app: a minimal control app containing nothing but a `fileImporter` failed the same way. Choosing a file in Files therefore has to be checked on a device.
+
+EAR presents the document browser from UIKit (`AudioPicker`) with single selection and `asCopy: true`. The system downloads and copies the chosen file into EAR's inbox before handing it over, and EAR removes that copy after import.
 
 ## References
 
